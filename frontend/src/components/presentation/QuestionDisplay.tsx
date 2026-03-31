@@ -14,6 +14,9 @@ export function QuestionDisplay({
   revealed,
   questionNumber,
 }: QuestionDisplayProps) {
+  const hasImage = !!question?.imageUrl;
+  const hasText = !!question?.text;
+
   return (
     <div className="flex flex-col items-center justify-center flex-1 px-8">
       <AnimatePresence mode="wait">
@@ -49,9 +52,30 @@ export function QuestionDisplay({
               <span className="text-xs font-bold uppercase tracking-widest text-pastel-sky mb-4 block">
                 Question {questionNumber}
               </span>
-              <p className="text-3xl font-bold text-foreground leading-snug">
-                {question?.text ?? "No more questions"}
-              </p>
+
+              {hasImage && (
+                <div className="flex justify-center mb-4">
+                  <div className="rounded-xl overflow-hidden border-2 border-pastel-peach/40 shadow-md bg-white/60 p-2">
+                    <img
+                      src={question.imageUrl}
+                      alt={`Question ${questionNumber}`}
+                      className="max-h-[320px] max-w-full w-auto h-auto object-contain rounded-lg"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {hasText && (
+                <p className={`text-3xl font-bold text-foreground leading-snug ${hasImage ? "text-center" : ""}`}>
+                  {question.text}
+                </p>
+              )}
+
+              {!hasText && !hasImage && (
+                <p className="text-3xl font-bold text-foreground leading-snug">
+                  No more questions
+                </p>
+              )}
             </div>
 
             {question && (

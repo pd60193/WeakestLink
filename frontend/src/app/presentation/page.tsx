@@ -81,7 +81,7 @@ export default function PresentationPage() {
         <QuestionDisplay
           question={gameState.currentQuestion}
           revealed={gameState.questionRevealed}
-          questionNumber={gameState.currentQuestionIndex + 1}
+          questionNumber={gameState.questionsAsked + 1}
         />
 
         {/* Right: Timer */}

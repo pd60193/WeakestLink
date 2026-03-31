@@ -8,7 +8,8 @@ export interface ChainLevel {
 
 export interface Question {
   id: string;
-  text: string;
+  text?: string;
+  imageUrl?: string;
   answer: string;
   difficulty: Difficulty;
   round: number;
