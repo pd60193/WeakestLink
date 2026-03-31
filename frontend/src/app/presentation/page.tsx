@@ -14,7 +14,8 @@ import { useTimer } from "@/hooks/useTimer";
 import { useGameState } from "@/hooks/useGameState";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useAudio } from "@/hooks/useAudio";
-import { DEFAULT_PLAYERS, DEFAULT_ROUNDS, MOCK_QUESTIONS } from "@/lib/constants";
+import { useRoundMetrics } from "@/hooks/useRoundMetrics";
+import { MONEY_CHAIN, DEFAULT_PLAYERS, DEFAULT_ROUNDS, MOCK_QUESTIONS } from "@/lib/constants";
 
 export default function PresentationPage() {
   const questions = MOCK_QUESTIONS;
@@ -25,6 +26,7 @@ export default function PresentationPage() {
 
   const gameState = useGameState({ questions, players });
   const audio = useAudio();
+  const metrics = useRoundMetrics();
 
   const handleTimerComplete = useCallback(() => {
     gameState.handleTimeUp();
@@ -52,17 +54,27 @@ export default function PresentationPage() {
 
   const handleCorrect = useCallback(() => {
     questionDisplayRef.current?.snapComplete();
+    const chainPos = gameState.chainPosition;
+    const playerName = gameState.currentPlayer?.name ?? "Unknown";
+    if (chainPos >= MONEY_CHAIN.length) {
+      metrics.recordCorrect(MONEY_CHAIN.length, playerName);
+    } else {
+      metrics.recordCorrect(chainPos + 1, playerName);
+    }
     gameState.markCorrect();
-  }, [gameState]);
+  }, [gameState, metrics]);
 
   const handleIncorrect = useCallback(() => {
     questionDisplayRef.current?.snapComplete();
+    metrics.recordIncorrect();
     gameState.markIncorrect();
-  }, [gameState]);
+  }, [gameState, metrics]);
 
   const handleBank = useCallback(() => {
     gameState.bank();
   }, [gameState]);
+
+  const roundMetrics = metrics.getMetrics(gameState.bankedThisRound);
 
   const keyboardActions = useMemo(
     () => ({
@@ -142,8 +154,12 @@ export default function PresentationPage() {
         bankedThisRound={gameState.bankedThisRound}
       />
 
-      {/* Time Up Overlay */}
-      <TimeUpOverlay visible={gameState.timeUp} onShow={handleTimeUpShow} />
+      {/* Time Up Overlay with Round Stats */}
+      <TimeUpOverlay
+        visible={gameState.timeUp}
+        onShow={handleTimeUpShow}
+        metrics={roundMetrics}
+      />
     </div>
   );
 }
