@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
 
 :root {
   --background: #FFF8F0;
@@ -37,11 +36,11 @@
   --color-difficulty-medium-hard: var(--difficulty-medium-hard);
   --color-difficulty-hard: var(--difficulty-hard);
   --color-difficulty-spicy: var(--difficulty-spicy);
-  --font-sans: 'Nunito', sans-serif;
+  --font-sans: var(--font-nunito), sans-serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--font-nunito), sans-serif;
 }
