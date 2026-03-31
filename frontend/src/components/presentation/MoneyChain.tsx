@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { motion } from "framer-motion";
-import { MONEY_CHAIN, DIFFICULTY_COLORS } from "@/lib/constants";
+import { motion } from 'framer-motion';
+import { MONEY_CHAIN, DIFFICULTY_COLORS } from '@/lib/constants';
 
 interface MoneyChainProps {
   chainPosition: number;
@@ -27,12 +27,12 @@ export function MoneyChain({ chainPosition }: MoneyChainProps) {
               scale: isActive ? 1.08 : 1,
               opacity: isBelow ? 0.45 : 1,
             }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
             className="relative flex items-center rounded-xl overflow-hidden"
             style={{
               boxShadow: isActive
                 ? `0 0 20px ${difficultyColor}88, 0 4px 12px rgba(0,0,0,0.08)`
-                : "0 1px 4px rgba(0,0,0,0.06)",
+                : '0 1px 4px rgba(0,0,0,0.06)',
             }}
           >
             {/* Difficulty color band */}
@@ -44,7 +44,7 @@ export function MoneyChain({ chainPosition }: MoneyChainProps) {
             <div
               className="flex-1 flex items-center justify-between px-4 py-2.5 transition-colors duration-300"
               style={{
-                backgroundColor: isActive ? `${difficultyColor}40` : "#FFFFFF",
+                backgroundColor: isActive ? `${difficultyColor}40` : '#FFFFFF',
               }}
             >
               <span className="text-xs font-semibold text-foreground/50 uppercase tracking-wide">
@@ -52,11 +52,11 @@ export function MoneyChain({ chainPosition }: MoneyChainProps) {
               </span>
               <span
                 className={`text-lg font-extrabold tabular-nums ${
-                  isActive ? "text-foreground" : "text-foreground/70"
+                  isActive ? 'text-foreground' : 'text-foreground/70'
                 }`}
               >
                 {level.value.toLocaleString()}
-                {level.position === 9 && " 🌶️"}
+                {level.position === 9 && ' 🌶️'}
               </span>
             </div>
 
@@ -66,7 +66,7 @@ export function MoneyChain({ chainPosition }: MoneyChainProps) {
                 layoutId="chain-indicator"
                 className="absolute -left-1 w-4 h-4 rounded-full"
                 style={{ backgroundColor: difficultyColor }}
-                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
               />
             )}
           </motion.div>
