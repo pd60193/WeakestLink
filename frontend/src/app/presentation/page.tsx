@@ -1,9 +1,12 @@
 "use client";
 
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useRef } from "react";
 import { MoneyChain } from "@/components/presentation/MoneyChain";
 import { Timer } from "@/components/presentation/Timer";
-import { QuestionDisplay } from "@/components/presentation/QuestionDisplay";
+import {
+  QuestionDisplay,
+  QuestionDisplayHandle,
+} from "@/components/presentation/QuestionDisplay";
 import { TotalScore } from "@/components/presentation/TotalScore";
 import { RoundHeader } from "@/components/presentation/RoundHeader";
 import { TimeUpOverlay } from "@/components/presentation/TimeUpOverlay";
@@ -17,6 +20,8 @@ export default function PresentationPage() {
   const questions = MOCK_QUESTIONS;
   const players = DEFAULT_PLAYERS;
   const roundConfig = DEFAULT_ROUNDS[0];
+
+  const questionDisplayRef = useRef<QuestionDisplayHandle>(null);
 
   const gameState = useGameState({ questions, players });
   const audio = useAudio();
@@ -45,19 +50,33 @@ export default function PresentationPage() {
     audio.stop();
   }, [gameState, audio]);
 
+  const handleCorrect = useCallback(() => {
+    questionDisplayRef.current?.snapComplete();
+    gameState.markCorrect();
+  }, [gameState]);
+
+  const handleIncorrect = useCallback(() => {
+    questionDisplayRef.current?.snapComplete();
+    gameState.markIncorrect();
+  }, [gameState]);
+
+  const handleBank = useCallback(() => {
+    gameState.bank();
+  }, [gameState]);
+
   const keyboardActions = useMemo(
     () => ({
       onReveal: gameState.revealQuestion,
-      onCorrect: gameState.markCorrect,
-      onIncorrect: gameState.markIncorrect,
-      onBank: gameState.bank,
+      onCorrect: handleCorrect,
+      onIncorrect: handleIncorrect,
+      onBank: handleBank,
       onNext: gameState.nextQuestion,
       onTogglePause: timer.togglePause,
       onStartTimer: handleStartTimer,
       onDismiss: handleDismiss,
       onToggleMute: audio.toggleMute,
     }),
-    [gameState, timer, handleStartTimer, handleDismiss, audio]
+    [gameState, timer, handleStartTimer, handleDismiss, handleCorrect, handleIncorrect, handleBank, audio]
   );
 
   useKeyboardShortcuts(keyboardActions);
@@ -79,6 +98,7 @@ export default function PresentationPage() {
 
         {/* Center: Question Display */}
         <QuestionDisplay
+          ref={questionDisplayRef}
           question={gameState.currentQuestion}
           revealed={gameState.questionRevealed}
           questionNumber={gameState.questionsAsked + 1}

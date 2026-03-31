@@ -57,6 +57,7 @@ export function Timer({ timeRemaining, totalTime, isRunning, isPaused }: TimerPr
             strokeWidth="10"
             strokeLinecap="round"
             strokeDasharray={circumference}
+            initial={{ strokeDashoffset: 0 }}
             animate={{ strokeDashoffset }}
             transition={{ duration: 0.5, ease: "linear" }}
           />

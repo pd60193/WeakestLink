@@ -1,7 +1,9 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
+import { useImperativeHandle, forwardRef } from "react";
 import { Question } from "@/types/game";
+import { useTypewriter } from "@/hooks/useTypewriter";
 
 interface QuestionDisplayProps {
   question: Question | null;
@@ -9,13 +11,24 @@ interface QuestionDisplayProps {
   questionNumber: number;
 }
 
-export function QuestionDisplay({
-  question,
-  revealed,
-  questionNumber,
-}: QuestionDisplayProps) {
+export interface QuestionDisplayHandle {
+  snapComplete: () => void;
+}
+
+export const QuestionDisplay = forwardRef<
+  QuestionDisplayHandle,
+  QuestionDisplayProps
+>(function QuestionDisplay({ question, revealed, questionNumber }, ref) {
   const hasImage = !!question?.imageUrl;
-  const hasText = !!question?.text;
+  const questionText = question?.text ?? "";
+
+  const { displayedText, isComplete, snapComplete } = useTypewriter({
+    text: revealed ? questionText : "",
+    speed: 40,
+    enabled: revealed && questionText.length > 0,
+  });
+
+  useImperativeHandle(ref, () => ({ snapComplete }), [snapComplete]);
 
   return (
     <div className="flex flex-col items-center justify-center flex-1 px-8">
@@ -65,13 +78,22 @@ export function QuestionDisplay({
                 </div>
               )}
 
-              {hasText && (
-                <p className={`text-3xl font-bold text-foreground leading-snug ${hasImage ? "text-center" : ""}`}>
-                  {question.text}
+              {questionText.length > 0 && (
+                <p
+                  className={`text-3xl font-bold text-foreground leading-snug ${hasImage ? "text-center" : ""}`}
+                >
+                  {displayedText}
+                  {!isComplete && (
+                    <motion.span
+                      animate={{ opacity: [1, 0] }}
+                      transition={{ duration: 0.5, repeat: Infinity }}
+                      className="inline-block w-[3px] h-[1em] bg-foreground/60 ml-0.5 align-baseline"
+                    />
+                  )}
                 </p>
               )}
 
-              {!hasText && !hasImage && (
+              {questionText.length === 0 && !hasImage && (
                 <p className="text-3xl font-bold text-foreground leading-snug">
                   No more questions
                 </p>
@@ -90,4 +112,4 @@ export function QuestionDisplay({
       </AnimatePresence>
     </div>
   );
-}
+});

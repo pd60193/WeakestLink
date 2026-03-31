@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Question, Player, Difficulty } from "@/types/game";
 import { MONEY_CHAIN } from "@/lib/constants";
 
@@ -38,8 +38,10 @@ export function useGameState({ questions, players }: UseGameStateOptions) {
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
   const [timeUp, setTimeUp] = useState(false);
   const [questionsAsked, setQuestionsAsked] = useState(0);
+  const [pendingReveal, setPendingReveal] = useState(false);
 
   const usedQuestionIds = useRef<Set<string>>(new Set());
+  const revealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Pick the current question based on chain difficulty
   const currentDifficulty = MONEY_CHAIN[chainPosition - 1]?.difficulty ?? "Easy";
@@ -52,6 +54,23 @@ export function useGameState({ questions, players }: UseGameStateOptions) {
     activePlayers[currentPlayerIndex % activePlayers.length] ?? null;
   const currentChainValue = MONEY_CHAIN[chainPosition - 1]?.value ?? 0;
 
+  // Delayed reveal: when pendingReveal is set, wait 1s then show the question
+  useEffect(() => {
+    if (pendingReveal) {
+      revealTimerRef.current = setTimeout(() => {
+        revealTimerRef.current = null;
+        setQuestionRevealed(true);
+        setPendingReveal(false);
+      }, 1000);
+      return () => {
+        if (revealTimerRef.current) {
+          clearTimeout(revealTimerRef.current);
+          revealTimerRef.current = null;
+        }
+      };
+    }
+  }, [pendingReveal]);
+
   const revealQuestion = useCallback(() => {
     if (!questionRevealed && currentQuestion) {
       setQuestionRevealed(true);
@@ -59,9 +78,9 @@ export function useGameState({ questions, players }: UseGameStateOptions) {
   }, [questionRevealed, currentQuestion]);
 
   const advanceToNextQuestion = useCallback(
-    (nextChainPos: number) => {
-      // Mark current question as used
-      if (currentQuestion) {
+    (nextChainPos: number, markUsed: boolean = true, countQuestion: boolean = true) => {
+      // Mark current question as used only if answered
+      if (markUsed && currentQuestion) {
         usedQuestionIds.current.add(currentQuestion.id);
       }
       // Pick next question based on the next chain position's difficulty
@@ -74,8 +93,11 @@ export function useGameState({ questions, players }: UseGameStateOptions) {
       );
       setCurrentQuestion(next);
       setQuestionRevealed(false);
+      setPendingReveal(true);
       setCurrentPlayerIndex((prev) => prev + 1);
-      setQuestionsAsked((prev) => prev + 1);
+      if (countQuestion) {
+        setQuestionsAsked((prev) => prev + 1);
+      }
     },
     [currentQuestion, questions]
   );
@@ -107,7 +129,9 @@ export function useGameState({ questions, players }: UseGameStateOptions) {
       setTotalBanked((prev) => prev + value);
     }
     setChainPosition(1);
-  }, [chainPosition]);
+    // Fetch new question at lowest difficulty, but don't mark current as used or count it
+    advanceToNextQuestion(1, false, false);
+  }, [chainPosition, advanceToNextQuestion]);
 
   const nextQuestion = useCallback(() => {
     advanceToNextQuestion(chainPosition);
@@ -123,9 +147,14 @@ export function useGameState({ questions, players }: UseGameStateOptions) {
 
   const resetRound = useCallback(
     (newRound?: number) => {
+      if (revealTimerRef.current) {
+        clearTimeout(revealTimerRef.current);
+        revealTimerRef.current = null;
+      }
       setChainPosition(1);
       setBankedThisRound(0);
       setQuestionRevealed(false);
+      setPendingReveal(false);
       setCurrentPlayerIndex(0);
       setTimeUp(false);
       setQuestionsAsked(0);
