@@ -11,7 +11,7 @@ interface UseGameStateOptions {
 
 export function useGameState({ questions, players }: UseGameStateOptions) {
   const [currentRound, setCurrentRound] = useState(1);
-  const [chainPosition, setChainPosition] = useState(0);
+  const [chainPosition, setChainPosition] = useState(1);
   const [bankedThisRound, setBankedThisRound] = useState(0);
   const [totalBanked, setTotalBanked] = useState(0);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -23,8 +23,7 @@ export function useGameState({ questions, players }: UseGameStateOptions) {
   const currentQuestion = questions[currentQuestionIndex] ?? null;
   const currentPlayer = activePlayers[currentPlayerIndex % activePlayers.length] ?? null;
 
-  const currentChainValue =
-    chainPosition > 0 ? MONEY_CHAIN[chainPosition - 1].value : 0;
+  const currentChainValue = MONEY_CHAIN[chainPosition - 1]?.value ?? 0;
 
   const revealQuestion = useCallback(() => {
     if (!questionRevealed && currentQuestion) {
@@ -33,22 +32,29 @@ export function useGameState({ questions, players }: UseGameStateOptions) {
   }, [questionRevealed, currentQuestion]);
 
   const markCorrect = useCallback(() => {
-    if (chainPosition < MONEY_CHAIN.length) {
+    if (chainPosition >= MONEY_CHAIN.length) {
+      // At Q9 (10,000) — auto-bank the top value
+      const value = MONEY_CHAIN[MONEY_CHAIN.length - 1].value;
+      setBankedThisRound((prev) => prev + value);
+      setTotalBanked((prev) => prev + value);
+      setChainPosition(1);
+    } else {
       setChainPosition((prev) => prev + 1);
     }
   }, [chainPosition]);
 
   const markIncorrect = useCallback(() => {
-    setChainPosition(0);
+    setChainPosition(1);
   }, []);
 
   const bank = useCallback(() => {
-    if (chainPosition > 0) {
-      const value = MONEY_CHAIN[chainPosition - 1].value;
+    if (chainPosition > 1) {
+      // Bank the value BELOW the current highlight
+      const value = MONEY_CHAIN[chainPosition - 2].value;
       setBankedThisRound((prev) => prev + value);
       setTotalBanked((prev) => prev + value);
-      setChainPosition(0);
     }
+    setChainPosition(1);
   }, [chainPosition]);
 
   const nextQuestion = useCallback(() => {
@@ -67,7 +73,7 @@ export function useGameState({ questions, players }: UseGameStateOptions) {
 
   const resetRound = useCallback(
     (newRound?: number) => {
-      setChainPosition(0);
+      setChainPosition(1);
       setBankedThisRound(0);
       setCurrentQuestionIndex(0);
       setQuestionRevealed(false);
