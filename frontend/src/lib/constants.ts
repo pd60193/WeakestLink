@@ -16,8 +16,8 @@ export const DIFFICULTY_COLORS: Record<Difficulty, string> = {
   Easy: "#A8E6CF",
   Medium: "#FFD3B6",
   "Medium-Hard": "#FFB87A",
-  Hard: "#D5AAFF",
-  Spicy: "#FF8B94",
+  Hard: "#FF8B94",
+  Spicy: "#4A4A5A",
 };
 
 export const DIFFICULTY_BG_CLASSES: Record<Difficulty, string> = {

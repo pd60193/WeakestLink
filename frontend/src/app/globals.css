@@ -15,8 +15,8 @@
   --difficulty-easy: #A8E6CF;
   --difficulty-medium: #FFD3B6;
   --difficulty-medium-hard: #FFB87A;
-  --difficulty-hard: #D5AAFF;
-  --difficulty-spicy: #FF8B94;
+  --difficulty-hard: #FF8B94;
+  --difficulty-spicy: #4A4A5A;
 }
 
 @theme inline {
