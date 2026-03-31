@@ -15,7 +15,7 @@ export const MONEY_CHAIN: ChainLevel[] = [
 export const DIFFICULTY_COLORS: Record<Difficulty, string> = {
   Easy: "#A8E6CF",
   Medium: "#FFD3B6",
-  "Medium-Hard": "#FFAAA5",
+  "Medium-Hard": "#FFB87A",
   Hard: "#D5AAFF",
   Spicy: "#FF8B94",
 };
