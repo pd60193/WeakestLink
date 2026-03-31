@@ -1,26 +1,47 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #FFF8F0;
+  --foreground: #4A4A4A;
+  --pastel-pink: #FFD3E0;
+  --pastel-peach: #FFE5CC;
+  --pastel-yellow: #FFF5CC;
+  --pastel-mint: #D4F5E9;
+  --pastel-sky: #CCE5FF;
+  --pastel-lilac: #E8D5F5;
+  --pastel-cream: #FFF8F0;
+  --pastel-rose: #F9C5D1;
+  --pastel-sage: #C5DFC5;
+  --difficulty-easy: #A8E6CF;
+  --difficulty-medium: #FFD3B6;
+  --difficulty-medium-hard: #FFAAA5;
+  --difficulty-hard: #D5AAFF;
+  --difficulty-spicy: #FF8B94;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-pastel-pink: var(--pastel-pink);
+  --color-pastel-peach: var(--pastel-peach);
+  --color-pastel-yellow: var(--pastel-yellow);
+  --color-pastel-mint: var(--pastel-mint);
+  --color-pastel-sky: var(--pastel-sky);
+  --color-pastel-lilac: var(--pastel-lilac);
+  --color-pastel-cream: var(--pastel-cream);
+  --color-pastel-rose: var(--pastel-rose);
+  --color-pastel-sage: var(--pastel-sage);
+  --color-difficulty-easy: var(--difficulty-easy);
+  --color-difficulty-medium: var(--difficulty-medium);
+  --color-difficulty-medium-hard: var(--difficulty-medium-hard);
+  --color-difficulty-hard: var(--difficulty-hard);
+  --color-difficulty-spicy: var(--difficulty-spicy);
+  --font-sans: 'Nunito', sans-serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Nunito', sans-serif;
 }
