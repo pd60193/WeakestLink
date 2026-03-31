@@ -1,0 +1,23 @@
+{
+  "money_chain": [
+    { "position": 1, "value": 100, "difficulty": "Easy" },
+    { "position": 2, "value": 250, "difficulty": "Easy" },
+    { "position": 3, "value": 500, "difficulty": "Medium" },
+    { "position": 4, "value": 1000, "difficulty": "Medium" },
+    { "position": 5, "value": 1750, "difficulty": "Medium-Hard" },
+    { "position": 6, "value": 3000, "difficulty": "Medium-Hard" },
+    { "position": 7, "value": 4500, "difficulty": "Hard" },
+    { "position": 8, "value": 6500, "difficulty": "Hard" },
+    { "position": 9, "value": 10000, "difficulty": "Spicy" }
+  ],
+  "rounds": [
+    { "round_number": 1, "duration_seconds": 150 },
+    { "round_number": 2, "duration_seconds": 140 },
+    { "round_number": 3, "duration_seconds": 130 },
+    { "round_number": 4, "duration_seconds": 120 },
+    { "round_number": 5, "duration_seconds": 110 },
+    { "round_number": 6, "duration_seconds": 100 },
+    { "round_number": 7, "duration_seconds": 90 }
+  ],
+  "max_players": 15
+}
