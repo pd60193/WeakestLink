@@ -11,6 +11,7 @@ interface KeyboardActions {
   onTogglePause: () => void;
   onStartTimer: () => void;
   onDismiss: () => void;
+  onToggleMute?: () => void;
 }
 
 export function useKeyboardShortcuts(actions: KeyboardActions) {
@@ -51,6 +52,10 @@ export function useKeyboardShortcuts(actions: KeyboardActions) {
           break;
         case "Escape":
           actions.onDismiss();
+          break;
+        case "m":
+        case "M":
+          actions.onToggleMute?.();
           break;
       }
     };

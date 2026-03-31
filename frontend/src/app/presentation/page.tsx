@@ -10,6 +10,7 @@ import { TimeUpOverlay } from "@/components/presentation/TimeUpOverlay";
 import { useTimer } from "@/hooks/useTimer";
 import { useGameState } from "@/hooks/useGameState";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { useAudio } from "@/hooks/useAudio";
 import { DEFAULT_PLAYERS, DEFAULT_ROUNDS, MOCK_QUESTIONS } from "@/lib/constants";
 
 export default function PresentationPage() {
@@ -18,11 +19,31 @@ export default function PresentationPage() {
   const roundConfig = DEFAULT_ROUNDS[0];
 
   const gameState = useGameState({ questions, players });
+  const audio = useAudio();
+
+  const handleTimerComplete = useCallback(() => {
+    gameState.handleTimeUp();
+  }, [gameState]);
 
   const timer = useTimer({
     initialSeconds: roundConfig.durationSeconds,
-    onComplete: gameState.handleTimeUp,
+    onComplete: handleTimerComplete,
   });
+
+  const handleStartTimer = useCallback(() => {
+    audio.playIntro(() => {
+      timer.startWithDelay(0);
+    });
+  }, [audio, timer]);
+
+  const handleTimeUpShow = useCallback(() => {
+    audio.playOutro();
+  }, [audio]);
+
+  const handleDismiss = useCallback(() => {
+    gameState.dismissTimeUp();
+    audio.stop();
+  }, [gameState, audio]);
 
   const keyboardActions = useMemo(
     () => ({
@@ -32,10 +53,11 @@ export default function PresentationPage() {
       onBank: gameState.bank,
       onNext: gameState.nextQuestion,
       onTogglePause: timer.togglePause,
-      onStartTimer: timer.start,
-      onDismiss: gameState.dismissTimeUp,
+      onStartTimer: handleStartTimer,
+      onDismiss: handleDismiss,
+      onToggleMute: audio.toggleMute,
     }),
-    [gameState, timer]
+    [gameState, timer, handleStartTimer, handleDismiss, audio]
   );
 
   useKeyboardShortcuts(keyboardActions);
@@ -73,6 +95,27 @@ export default function PresentationPage() {
         </div>
       </div>
 
+      {/* Mute toggle */}
+      <button
+        onClick={audio.toggleMute}
+        className="fixed top-4 right-4 z-40 bg-white/80 hover:bg-white rounded-full p-2 shadow-md transition-colors"
+        title={audio.isMuted ? "Unmute (M)" : "Mute (M)"}
+      >
+        {audio.isMuted ? (
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M11 5L6 9H2v6h4l5 4V5z" />
+            <line x1="23" y1="9" x2="17" y2="15" />
+            <line x1="17" y1="9" x2="23" y2="15" />
+          </svg>
+        ) : (
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+          </svg>
+        )}
+      </button>
+
       {/* Bottom: Total Score */}
       <TotalScore
         totalBanked={gameState.totalBanked}
@@ -80,7 +123,7 @@ export default function PresentationPage() {
       />
 
       {/* Time Up Overlay */}
-      <TimeUpOverlay visible={gameState.timeUp} />
+      <TimeUpOverlay visible={gameState.timeUp} onShow={handleTimeUpShow} />
     </div>
   );
 }

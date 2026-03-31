@@ -12,6 +12,7 @@ export function useTimer({ initialSeconds, onComplete }: UseTimerOptions) {
   const [isRunning, setIsRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const delayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onCompleteRef = useRef(onComplete);
 
   onCompleteRef.current = onComplete;
@@ -20,6 +21,10 @@ export function useTimer({ initialSeconds, onComplete }: UseTimerOptions) {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
+    }
+    if (delayRef.current) {
+      clearTimeout(delayRef.current);
+      delayRef.current = null;
     }
   }, []);
 
@@ -39,6 +44,29 @@ export function useTimer({ initialSeconds, onComplete }: UseTimerOptions) {
       });
     }, 1000);
   }, [clearTimer]);
+
+  const startWithDelay = useCallback(
+    (delayMs: number) => {
+      clearTimer();
+      setIsRunning(true);
+      setIsPaused(false);
+      delayRef.current = setTimeout(() => {
+        delayRef.current = null;
+        intervalRef.current = setInterval(() => {
+          setTimeRemaining((prev) => {
+            if (prev <= 1) {
+              clearTimer();
+              setIsRunning(false);
+              onCompleteRef.current?.();
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      }, delayMs);
+    },
+    [clearTimer]
+  );
 
   const pause = useCallback(() => {
     if (isRunning && !isPaused) {
@@ -88,6 +116,7 @@ export function useTimer({ initialSeconds, onComplete }: UseTimerOptions) {
     isRunning,
     isPaused,
     start,
+    startWithDelay,
     pause,
     resume,
     togglePause,
