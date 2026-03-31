@@ -13,11 +13,11 @@ export const MONEY_CHAIN: ChainLevel[] = [
 ];
 
 export const DIFFICULTY_COLORS: Record<Difficulty, string> = {
-  Easy: "var(--difficulty-easy)",
-  Medium: "var(--difficulty-medium)",
-  "Medium-Hard": "var(--difficulty-medium-hard)",
-  Hard: "var(--difficulty-hard)",
-  Spicy: "var(--difficulty-spicy)",
+  Easy: "#A8E6CF",
+  Medium: "#FFD3B6",
+  "Medium-Hard": "#FFAAA5",
+  Hard: "#D5AAFF",
+  Spicy: "#FF8B94",
 };
 
 export const DIFFICULTY_BG_CLASSES: Record<Difficulty, string> = {

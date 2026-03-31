@@ -56,6 +56,7 @@ export function MoneyChain({ chainPosition }: MoneyChainProps) {
                 }`}
               >
                 {level.value.toLocaleString()}
+                {level.position === 9 && " 🌶️"}
               </span>
             </div>
 
