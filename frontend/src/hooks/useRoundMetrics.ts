@@ -18,6 +18,7 @@ export function useRoundMetrics() {
   const [longestStreak, setLongestStreak] = useState(0);
   const currentStreak = useRef(0);
   const playerCorrectCounts = useRef<Map<string, number>>(new Map());
+  const playerBankedCounts = useRef<Map<string, number>>(new Map());
 
   const recordCorrect = useCallback(
     (newChainPosition: number, playerName: string) => {
@@ -35,6 +36,11 @@ export function useRoundMetrics() {
     []
   );
 
+  const recordBank = useCallback((amount: number, playerName: string) => {
+    const counts = playerBankedCounts.current;
+    counts.set(playerName, (counts.get(playerName) ?? 0) + amount);
+  }, []);
+
   const recordIncorrect = useCallback(() => {
     setQuestionsAnswered((prev) => prev + 1);
     currentStreak.current = 0;
@@ -46,26 +52,60 @@ export function useRoundMetrics() {
     setLongestStreak(0);
     currentStreak.current = 0;
     playerCorrectCounts.current.clear();
+    playerBankedCounts.current.clear();
   }, []);
 
   const getMetrics = useCallback(
-    (bankedThisRound: number): RoundMetrics => {
+    (bankedThisRound: number, playerOrder: string[] = []): RoundMetrics => {
       const highestValue =
         MONEY_CHAIN[highestChainPosition - 1]?.value ?? 0;
 
       // Find player(s) with highest correct count
-      const counts = playerCorrectCounts.current;
+      const correctCounts = playerCorrectCounts.current;
+      const bankedCounts = playerBankedCounts.current;
       let maxCorrect = 0;
-      const strongestLinks: string[] = [];
-      counts.forEach((count, name) => {
+      const candidates: string[] = [];
+      correctCounts.forEach((count, name) => {
         if (count > maxCorrect) {
           maxCorrect = count;
-          strongestLinks.length = 0;
-          strongestLinks.push(name);
+          candidates.length = 0;
+          candidates.push(name);
         } else if (count === maxCorrect && maxCorrect > 0) {
-          strongestLinks.push(name);
+          candidates.push(name);
         }
       });
+
+      // Tiebreaker 1: highest amount banked
+      let strongestLinks = candidates;
+      if (strongestLinks.length > 1) {
+        let maxBanked = 0;
+        const bankedCandidates: string[] = [];
+        for (const name of strongestLinks) {
+          const banked = bankedCounts.get(name) ?? 0;
+          if (banked > maxBanked) {
+            maxBanked = banked;
+            bankedCandidates.length = 0;
+            bankedCandidates.push(name);
+          } else if (banked === maxBanked) {
+            bankedCandidates.push(name);
+          }
+        }
+        strongestLinks = bankedCandidates;
+      }
+
+      // Tiebreaker 2: player who went first in the round (lowest index in playerOrder)
+      if (strongestLinks.length > 1 && playerOrder.length > 0) {
+        let earliestIndex = Infinity;
+        let earliest = strongestLinks[0];
+        for (const name of strongestLinks) {
+          const idx = playerOrder.indexOf(name);
+          if (idx !== -1 && idx < earliestIndex) {
+            earliestIndex = idx;
+            earliest = name;
+          }
+        }
+        strongestLinks = [earliest];
+      }
 
       return {
         questionsAnswered,
@@ -86,6 +126,11 @@ export function useRoundMetrics() {
     []
   );
 
+  const getPlayerBankedCounts = useCallback(
+    () => Object.fromEntries(playerBankedCounts.current),
+    []
+  );
+
   const restoreMetrics = useCallback(
     (saved: {
       questionsAnswered: number;
@@ -93,6 +138,7 @@ export function useRoundMetrics() {
       longestStreak: number;
       currentStreak: number;
       playerCorrectCounts: Record<string, number>;
+      playerBankedCounts: Record<string, number>;
     }) => {
       setQuestionsAnswered(saved.questionsAnswered);
       setHighestChainPosition(saved.highestChainPosition);
@@ -101,17 +147,22 @@ export function useRoundMetrics() {
       playerCorrectCounts.current = new Map(
         Object.entries(saved.playerCorrectCounts)
       );
+      playerBankedCounts.current = new Map(
+        Object.entries(saved.playerBankedCounts)
+      );
     },
     []
   );
 
   return {
     recordCorrect,
+    recordBank,
     recordIncorrect,
     reset,
     getMetrics,
     getCurrentStreak,
     getPlayerCorrectCounts,
+    getPlayerBankedCounts,
     restoreMetrics,
   };
 }

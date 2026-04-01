@@ -72,6 +72,16 @@ Please structure the Next.js routing and FastAPI endpoints knowing that in futur
 
 ---
 
+### Strongest Link Tiebreaking Rules
+
+When determining the Strongest Link at the end of a round, apply these tiebreakers in order:
+
+1. **Most correct answers** — player with the highest number of correctly answered questions
+2. **Highest amount banked** — if tied on correct answers, the player who banked the most points wins
+3. **First in round order** — if still tied, the player who went first in the round (earliest in the active players list) is deemed strongest
+
+---
+
 ### Your Task
 
 1. Write the Next.js frontend code for the Presentation Portal, breaking it down into logical, modular React components (e.g., `Timer`, `MoneyChain`, `QuestionDisplay`).

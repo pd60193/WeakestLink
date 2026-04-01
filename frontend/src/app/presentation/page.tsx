@@ -76,6 +76,7 @@ export default function PresentationPage() {
       longestStreak: saved.longestStreak,
       currentStreak: saved.currentStreak,
       playerCorrectCounts: saved.playerCorrectCounts,
+      playerBankedCounts: saved.playerBankedCounts ?? {},
     });
     audio.restoreMuted(saved.isMuted);
     setSessionDecision("resume");
@@ -108,6 +109,7 @@ export default function PresentationPage() {
     longestStreak: metrics.getMetrics(gameState.bankedThisRound).longestStreak,
     currentStreak: metrics.getCurrentStreak(),
     playerCorrectCounts: metrics.getPlayerCorrectCounts(),
+    playerBankedCounts: metrics.getPlayerBankedCounts(),
   };
 
   // Debounced save whenever key values change
@@ -176,10 +178,19 @@ export default function PresentationPage() {
   }, [gameState, metrics]);
 
   const handleBank = useCallback(() => {
+    if (gameState.chainPosition > 1) {
+      const value = MONEY_CHAIN[gameState.chainPosition - 2].value;
+      const playerName = gameState.currentPlayer?.name ?? "Unknown";
+      metrics.recordBank(value, playerName);
+    }
     gameState.bank();
-  }, [gameState]);
+  }, [gameState, metrics]);
 
-  const roundMetrics = metrics.getMetrics(gameState.bankedThisRound);
+  const playerOrder = useMemo(
+    () => gameState.activePlayers.map((p) => p.name),
+    [gameState.activePlayers]
+  );
+  const roundMetrics = metrics.getMetrics(gameState.bankedThisRound, playerOrder);
 
   const keyboardActions = useMemo(
     () => ({

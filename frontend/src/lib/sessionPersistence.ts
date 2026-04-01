@@ -25,6 +25,7 @@ export interface PersistedGameSession {
   longestStreak: number;
   currentStreak: number;
   playerCorrectCounts: Record<string, number>;
+  playerBankedCounts: Record<string, number>;
 }
 
 export function saveSession(state: PersistedGameSession): void {
