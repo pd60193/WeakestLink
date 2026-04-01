@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import game, rounds, players
+from app.routers import game, rounds, players, ws
 
 app = FastAPI(title="Weakest Link API", version="0.1.0")
 
@@ -16,6 +16,7 @@ app.add_middleware(
 app.include_router(game.router, prefix="/api/game", tags=["game"])
 app.include_router(rounds.router, prefix="/api/rounds", tags=["rounds"])
 app.include_router(players.router, prefix="/api/players", tags=["players"])
+app.include_router(ws.router, prefix="/api/ws", tags=["websocket"])
 
 
 @app.get("/api/health")
