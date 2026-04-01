@@ -9,6 +9,7 @@ interface QuestionDisplayProps {
   question: Question | null;
   revealed: boolean;
   questionNumber: number;
+  revealedAnswer?: string | null;
 }
 
 export interface QuestionDisplayHandle {
@@ -18,7 +19,7 @@ export interface QuestionDisplayHandle {
 export const QuestionDisplay = forwardRef<
   QuestionDisplayHandle,
   QuestionDisplayProps
->(function QuestionDisplay({ question, revealed, questionNumber }, ref) {
+>(function QuestionDisplay({ question, revealed, questionNumber, revealedAnswer }, ref) {
   const hasImage = !!question?.imageUrl;
   const questionText = question?.text ?? "";
 
@@ -100,7 +101,27 @@ export const QuestionDisplay = forwardRef<
               )}
             </div>
 
-            {question && (
+            <AnimatePresence>
+              {revealedAnswer && (
+                <motion.div
+                  key="answer"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="mt-4 bg-pastel-peach/30 backdrop-blur-sm rounded-xl px-6 py-4 border border-pastel-peach/50 text-center"
+                >
+                  <span className="text-xs font-bold uppercase tracking-widest text-pastel-peach block mb-1">
+                    Answer
+                  </span>
+                  <p className="text-2xl font-bold text-foreground">
+                    {revealedAnswer}
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {question && !revealedAnswer && (
               <div className="mt-4 flex justify-center gap-6 text-sm font-semibold text-foreground/40">
                 <span>C = Correct</span>
                 <span>X = Incorrect</span>

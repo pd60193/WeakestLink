@@ -31,6 +31,8 @@ export default function PresentationPage() {
   const questionDisplayRef = useRef<QuestionDisplayHandle>(null);
   const session = useSessionPersistence();
   const [sessionDecision, setSessionDecision] = useState<"pending" | "resume" | "new">("pending");
+  const [revealedAnswer, setRevealedAnswer] = useState<string | null>(null);
+  const answerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const gameState = useGameState({ questions: MOCK_QUESTIONS, players });
   const audio = useAudio();
@@ -38,6 +40,15 @@ export default function PresentationPage() {
 
   const roundConfig = DEFAULT_ROUNDS[gameState.currentRound - 1] ?? DEFAULT_ROUNDS[DEFAULT_ROUNDS.length - 1];
   const totalRounds = DEFAULT_ROUNDS.length;
+
+  // Cleanup answer reveal timer on unmount
+  useEffect(() => {
+    return () => {
+      if (answerTimerRef.current) {
+        clearTimeout(answerTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleTimerComplete = useCallback(() => {
     gameState.handleTimeUp();
@@ -189,11 +200,17 @@ export default function PresentationPage() {
   }, [gameState, metrics]);
 
   const handleIncorrect = useCallback(() => {
-    if (gameState.timeUp) return;
+    if (gameState.timeUp || revealedAnswer) return;
     questionDisplayRef.current?.snapComplete();
+    const answer = gameState.currentQuestion?.answer ?? null;
+    setRevealedAnswer(answer);
     metrics.recordIncorrect();
-    gameState.markIncorrect();
-  }, [gameState, metrics]);
+    answerTimerRef.current = setTimeout(() => {
+      answerTimerRef.current = null;
+      setRevealedAnswer(null);
+      gameState.markIncorrect();
+    }, 1000);
+  }, [gameState, metrics, revealedAnswer]);
 
   const handleBank = useCallback(() => {
     if (gameState.timeUp) return;
@@ -261,6 +278,7 @@ export default function PresentationPage() {
           question={gameState.currentQuestion}
           revealed={gameState.questionRevealed}
           questionNumber={gameState.questionsAsked + 1}
+          revealedAnswer={revealedAnswer}
         />
 
         {/* Right: Timer */}
