@@ -9,9 +9,10 @@ interface TimeUpOverlayProps {
   visible: boolean;
   onShow?: () => void;
   metrics?: RoundMetrics;
+  nextRound?: number | null;
 }
 
-export function TimeUpOverlay({ visible, onShow, metrics }: TimeUpOverlayProps) {
+export function TimeUpOverlay({ visible, onShow, metrics, nextRound }: TimeUpOverlayProps) {
   const hasPlayed = useRef(false);
 
   useEffect(() => {
@@ -50,9 +51,11 @@ export function TimeUpOverlay({ visible, onShow, metrics }: TimeUpOverlayProps) 
               TIME&apos;S UP!
             </motion.h1>
           </div>
-          <span className="text-sm font-semibold text-white/80 tracking-widest uppercase">
-            Press Escape to dismiss
-          </span>
+          {nextRound != null && (
+            <span className="text-sm font-semibold text-white/80 tracking-widest uppercase">
+              Press Enter to move to Round {nextRound}
+            </span>
+          )}
         </div>
 
         {/* Right: Round Stats */}

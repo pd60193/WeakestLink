@@ -10,7 +10,7 @@ interface KeyboardActions {
   onNext: () => void;
   onTogglePause: () => void;
   onStartTimer: () => void;
-  onDismiss: () => void;
+  onNextRound: () => void;
   onToggleMute?: () => void;
 }
 
@@ -50,8 +50,8 @@ export function useKeyboardShortcuts(actions: KeyboardActions) {
         case "T":
           actions.onStartTimer();
           break;
-        case "Escape":
-          actions.onDismiss();
+        case "Enter":
+          actions.onNextRound();
           break;
         case "m":
         case "M":

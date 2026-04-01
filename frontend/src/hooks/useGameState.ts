@@ -79,7 +79,7 @@ export function useGameState({ questions, players }: UseGameStateOptions) {
   }, [questionRevealed, currentQuestion]);
 
   const advanceToNextQuestion = useCallback(
-    (nextChainPos: number, markUsed: boolean = true, countQuestion: boolean = true) => {
+    (nextChainPos: number, markUsed: boolean = true, countQuestion: boolean = true, advancePlayer: boolean = true) => {
       // Mark current question as used only if answered
       if (markUsed && currentQuestion) {
         usedQuestionIds.current.add(currentQuestion.id);
@@ -95,7 +95,9 @@ export function useGameState({ questions, players }: UseGameStateOptions) {
       setCurrentQuestion(next);
       setQuestionRevealed(false);
       setPendingReveal(true);
-      setCurrentPlayerIndex((prev) => prev + 1);
+      if (advancePlayer) {
+        setCurrentPlayerIndex((prev) => prev + 1);
+      }
       if (countQuestion) {
         setQuestionsAsked((prev) => prev + 1);
       }
@@ -130,8 +132,8 @@ export function useGameState({ questions, players }: UseGameStateOptions) {
       setTotalBanked((prev) => prev + value);
     }
     setChainPosition(1);
-    // Fetch new question at lowest difficulty, but don't mark current as used or count it
-    advanceToNextQuestion(1, false, false);
+    // Fetch new question at lowest difficulty, but don't mark current as used, count it, or advance player
+    advanceToNextQuestion(1, false, false, false);
   }, [chainPosition, advanceToNextQuestion]);
 
   const nextQuestion = useCallback(() => {
@@ -147,7 +149,7 @@ export function useGameState({ questions, players }: UseGameStateOptions) {
   }, []);
 
   const resetRound = useCallback(
-    (newRound?: number) => {
+    (newRound?: number, startingPlayerName?: string) => {
       if (revealTimerRef.current) {
         clearTimeout(revealTimerRef.current);
         revealTimerRef.current = null;
@@ -156,10 +158,18 @@ export function useGameState({ questions, players }: UseGameStateOptions) {
       setBankedThisRound(0);
       setQuestionRevealed(false);
       setPendingReveal(false);
-      setCurrentPlayerIndex(0);
       setTimeUp(false);
       setQuestionsAsked(0);
       usedQuestionIds.current.clear();
+
+      // Set starting player index based on strongest link name
+      let startIndex = 0;
+      if (startingPlayerName) {
+        const idx = activePlayers.findIndex((p) => p.name === startingPlayerName);
+        if (idx !== -1) startIndex = idx;
+      }
+      setCurrentPlayerIndex(startIndex);
+
       const first = pickRandomQuestion(
         questions,
         usedQuestionIds.current,
@@ -170,7 +180,7 @@ export function useGameState({ questions, players }: UseGameStateOptions) {
         setCurrentRound(newRound);
       }
     },
-    [questions]
+    [questions, activePlayers]
   );
 
   const getUsedQuestionIds = useCallback(

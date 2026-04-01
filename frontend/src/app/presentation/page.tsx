@@ -26,17 +26,18 @@ import {
 import { MONEY_CHAIN, DEFAULT_PLAYERS, DEFAULT_ROUNDS, MOCK_QUESTIONS } from "@/lib/constants";
 
 export default function PresentationPage() {
-  const questions = MOCK_QUESTIONS;
   const players = DEFAULT_PLAYERS;
-  const roundConfig = DEFAULT_ROUNDS[0];
 
   const questionDisplayRef = useRef<QuestionDisplayHandle>(null);
   const session = useSessionPersistence();
   const [sessionDecision, setSessionDecision] = useState<"pending" | "resume" | "new">("pending");
 
-  const gameState = useGameState({ questions, players });
+  const gameState = useGameState({ questions: MOCK_QUESTIONS, players });
   const audio = useAudio();
   const metrics = useRoundMetrics();
+
+  const roundConfig = DEFAULT_ROUNDS[gameState.currentRound - 1] ?? DEFAULT_ROUNDS[DEFAULT_ROUNDS.length - 1];
+  const totalRounds = DEFAULT_ROUNDS.length;
 
   const handleTimerComplete = useCallback(() => {
     gameState.handleTimeUp();
@@ -64,7 +65,7 @@ export default function PresentationPage() {
       bankedThisRound: saved.bankedThisRound,
       totalBanked: saved.totalBanked,
       currentPlayerIndex: saved.currentPlayerIndex,
-      timeUp: saved.timeUp,
+      timeUp: saved.timeUp || saved.timeRemaining <= 0,
       questionsAsked: saved.questionsAsked,
       currentQuestionId: saved.currentQuestionId,
       usedQuestionIds: saved.usedQuestionIds,
@@ -152,16 +153,30 @@ export default function PresentationPage() {
     });
   }, [audio, timer]);
 
+  const playerOrder = useMemo(
+    () => gameState.activePlayers.map((p) => p.name),
+    [gameState.activePlayers]
+  );
+  const roundMetrics = metrics.getMetrics(gameState.bankedThisRound, playerOrder);
+
   const handleTimeUpShow = useCallback(() => {
     audio.playOutro();
   }, [audio]);
 
-  const handleDismiss = useCallback(() => {
-    gameState.dismissTimeUp();
+  const handleNextRound = useCallback(() => {
+    if (!gameState.timeUp) return;
     audio.stop();
-  }, [gameState, audio]);
+    const nextRound = gameState.currentRound + 1;
+    if (nextRound > totalRounds) return;
+    const strongestLink = roundMetrics.strongestLinks[0] ?? undefined;
+    gameState.resetRound(nextRound, strongestLink);
+    metrics.reset();
+    const nextRoundConfig = DEFAULT_ROUNDS[nextRound - 1];
+    timer.reset(nextRoundConfig.durationSeconds);
+  }, [gameState, audio, metrics, timer, totalRounds, roundMetrics]);
 
   const handleCorrect = useCallback(() => {
+    if (gameState.timeUp) return;
     questionDisplayRef.current?.snapComplete();
     const chainPos = gameState.chainPosition;
     const playerName = gameState.currentPlayer?.name ?? "Unknown";
@@ -174,12 +189,14 @@ export default function PresentationPage() {
   }, [gameState, metrics]);
 
   const handleIncorrect = useCallback(() => {
+    if (gameState.timeUp) return;
     questionDisplayRef.current?.snapComplete();
     metrics.recordIncorrect();
     gameState.markIncorrect();
   }, [gameState, metrics]);
 
   const handleBank = useCallback(() => {
+    if (gameState.timeUp) return;
     if (gameState.chainPosition > 1) {
       const value = MONEY_CHAIN[gameState.chainPosition - 2].value;
       const playerName = gameState.currentPlayer?.name ?? "Unknown";
@@ -188,25 +205,29 @@ export default function PresentationPage() {
     gameState.bank();
   }, [gameState, metrics]);
 
-  const playerOrder = useMemo(
-    () => gameState.activePlayers.map((p) => p.name),
-    [gameState.activePlayers]
-  );
-  const roundMetrics = metrics.getMetrics(gameState.bankedThisRound, playerOrder);
+  const handleReveal = useCallback(() => {
+    if (gameState.timeUp) return;
+    gameState.revealQuestion();
+  }, [gameState]);
+
+  const handleNext = useCallback(() => {
+    if (gameState.timeUp) return;
+    gameState.nextQuestion();
+  }, [gameState]);
 
   const keyboardActions = useMemo(
     () => ({
-      onReveal: gameState.revealQuestion,
+      onReveal: handleReveal,
       onCorrect: handleCorrect,
       onIncorrect: handleIncorrect,
       onBank: handleBank,
-      onNext: gameState.nextQuestion,
+      onNext: handleNext,
       onTogglePause: timer.togglePause,
       onStartTimer: handleStartTimer,
-      onDismiss: handleDismiss,
+      onNextRound: handleNextRound,
       onToggleMute: audio.toggleMute,
     }),
-    [gameState, timer, handleStartTimer, handleDismiss, handleCorrect, handleIncorrect, handleBank, audio]
+    [gameState, timer, handleStartTimer, handleNextRound, handleCorrect, handleIncorrect, handleBank, handleReveal, handleNext, audio]
   );
 
   useKeyboardShortcuts(keyboardActions);
@@ -285,6 +306,7 @@ export default function PresentationPage() {
         visible={gameState.timeUp}
         onShow={handleTimeUpShow}
         metrics={roundMetrics}
+        nextRound={gameState.currentRound < totalRounds ? gameState.currentRound + 1 : null}
       />
     </div>
   );
