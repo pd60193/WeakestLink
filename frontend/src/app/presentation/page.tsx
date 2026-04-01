@@ -76,6 +76,7 @@ export default function PresentationPage() {
       longestStreak: saved.longestStreak,
       currentStreak: saved.currentStreak,
       playerCorrectCounts: saved.playerCorrectCounts,
+      playerCorrectValues: saved.playerCorrectValues ?? {},
       playerBankedCounts: saved.playerBankedCounts ?? {},
     });
     audio.restoreMuted(saved.isMuted);
@@ -109,6 +110,7 @@ export default function PresentationPage() {
     longestStreak: metrics.getMetrics(gameState.bankedThisRound).longestStreak,
     currentStreak: metrics.getCurrentStreak(),
     playerCorrectCounts: metrics.getPlayerCorrectCounts(),
+    playerCorrectValues: metrics.getPlayerCorrectValues(),
     playerBankedCounts: metrics.getPlayerBankedCounts(),
   };
 

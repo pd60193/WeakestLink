@@ -18,6 +18,7 @@ export function useRoundMetrics() {
   const [longestStreak, setLongestStreak] = useState(0);
   const currentStreak = useRef(0);
   const playerCorrectCounts = useRef<Map<string, number>>(new Map());
+  const playerCorrectValues = useRef<Map<string, number>>(new Map());
   const playerBankedCounts = useRef<Map<string, number>>(new Map());
 
   const recordCorrect = useCallback(
@@ -32,6 +33,11 @@ export function useRoundMetrics() {
       // Track per-player correct counts
       const counts = playerCorrectCounts.current;
       counts.set(playerName, (counts.get(playerName) ?? 0) + 1);
+
+      // Track per-player total value of correctly answered questions
+      const value = MONEY_CHAIN[newChainPosition - 1]?.value ?? 0;
+      const values = playerCorrectValues.current;
+      values.set(playerName, (values.get(playerName) ?? 0) + value);
     },
     []
   );
@@ -52,6 +58,7 @@ export function useRoundMetrics() {
     setLongestStreak(0);
     currentStreak.current = 0;
     playerCorrectCounts.current.clear();
+    playerCorrectValues.current.clear();
     playerBankedCounts.current.clear();
   }, []);
 
@@ -62,7 +69,6 @@ export function useRoundMetrics() {
 
       // Find player(s) with highest correct count
       const correctCounts = playerCorrectCounts.current;
-      const bankedCounts = playerBankedCounts.current;
       let maxCorrect = 0;
       const candidates: string[] = [];
       correctCounts.forEach((count, name) => {
@@ -75,22 +81,23 @@ export function useRoundMetrics() {
         }
       });
 
-      // Tiebreaker 1: highest amount banked
+      // Tiebreaker 1: highest total value of correctly answered questions
+      const correctValues = playerCorrectValues.current;
       let strongestLinks = candidates;
       if (strongestLinks.length > 1) {
-        let maxBanked = 0;
-        const bankedCandidates: string[] = [];
+        let maxValue = 0;
+        const valueCandidates: string[] = [];
         for (const name of strongestLinks) {
-          const banked = bankedCounts.get(name) ?? 0;
-          if (banked > maxBanked) {
-            maxBanked = banked;
-            bankedCandidates.length = 0;
-            bankedCandidates.push(name);
-          } else if (banked === maxBanked) {
-            bankedCandidates.push(name);
+          const totalValue = correctValues.get(name) ?? 0;
+          if (totalValue > maxValue) {
+            maxValue = totalValue;
+            valueCandidates.length = 0;
+            valueCandidates.push(name);
+          } else if (totalValue === maxValue) {
+            valueCandidates.push(name);
           }
         }
-        strongestLinks = bankedCandidates;
+        strongestLinks = valueCandidates;
       }
 
       // Tiebreaker 2: player who went first in the round (lowest index in playerOrder)
@@ -126,6 +133,11 @@ export function useRoundMetrics() {
     []
   );
 
+  const getPlayerCorrectValues = useCallback(
+    () => Object.fromEntries(playerCorrectValues.current),
+    []
+  );
+
   const getPlayerBankedCounts = useCallback(
     () => Object.fromEntries(playerBankedCounts.current),
     []
@@ -138,6 +150,7 @@ export function useRoundMetrics() {
       longestStreak: number;
       currentStreak: number;
       playerCorrectCounts: Record<string, number>;
+      playerCorrectValues: Record<string, number>;
       playerBankedCounts: Record<string, number>;
     }) => {
       setQuestionsAnswered(saved.questionsAnswered);
@@ -146,6 +159,9 @@ export function useRoundMetrics() {
       currentStreak.current = saved.currentStreak;
       playerCorrectCounts.current = new Map(
         Object.entries(saved.playerCorrectCounts)
+      );
+      playerCorrectValues.current = new Map(
+        Object.entries(saved.playerCorrectValues ?? {})
       );
       playerBankedCounts.current = new Map(
         Object.entries(saved.playerBankedCounts)
@@ -162,6 +178,7 @@ export function useRoundMetrics() {
     getMetrics,
     getCurrentStreak,
     getPlayerCorrectCounts,
+    getPlayerCorrectValues,
     getPlayerBankedCounts,
     restoreMetrics,
   };
