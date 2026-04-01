@@ -79,10 +79,39 @@ export function useRoundMetrics() {
     [questionsAnswered, highestChainPosition, longestStreak]
   );
 
+  const getCurrentStreak = useCallback(() => currentStreak.current, []);
+
+  const getPlayerCorrectCounts = useCallback(
+    () => Object.fromEntries(playerCorrectCounts.current),
+    []
+  );
+
+  const restoreMetrics = useCallback(
+    (saved: {
+      questionsAnswered: number;
+      highestChainPosition: number;
+      longestStreak: number;
+      currentStreak: number;
+      playerCorrectCounts: Record<string, number>;
+    }) => {
+      setQuestionsAnswered(saved.questionsAnswered);
+      setHighestChainPosition(saved.highestChainPosition);
+      setLongestStreak(saved.longestStreak);
+      currentStreak.current = saved.currentStreak;
+      playerCorrectCounts.current = new Map(
+        Object.entries(saved.playerCorrectCounts)
+      );
+    },
+    []
+  );
+
   return {
     recordCorrect,
     recordIncorrect,
     reset,
     getMetrics,
+    getCurrentStreak,
+    getPlayerCorrectCounts,
+    restoreMetrics,
   };
 }

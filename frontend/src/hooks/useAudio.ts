@@ -120,6 +120,13 @@ export function useAudio(segments: AudioSegments = DEFAULT_SEGMENTS) {
     });
   }, []);
 
+  const restoreMuted = useCallback((muted: boolean) => {
+    setIsMuted(muted);
+    if (audioRef.current) {
+      audioRef.current.muted = muted;
+    }
+  }, []);
+
   return {
     playIntro,
     playOutro,
@@ -127,5 +134,6 @@ export function useAudio(segments: AudioSegments = DEFAULT_SEGMENTS) {
     isMuted,
     toggleMute,
     isLoaded,
+    restoreMuted,
   };
 }

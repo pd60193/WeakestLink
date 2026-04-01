@@ -111,6 +111,13 @@ export function useTimer({ initialSeconds, onComplete }: UseTimerOptions) {
     return clearTimer;
   }, [clearTimer]);
 
+  const restoreTime = useCallback((remaining: number) => {
+    clearTimer();
+    setTimeRemaining(remaining);
+    setIsRunning(false);
+    setIsPaused(false);
+  }, [clearTimer]);
+
   return {
     timeRemaining,
     isRunning,
@@ -121,5 +128,6 @@ export function useTimer({ initialSeconds, onComplete }: UseTimerOptions) {
     resume,
     togglePause,
     reset,
+    restoreTime,
   };
 }

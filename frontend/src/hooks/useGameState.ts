@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Question, Player, Difficulty } from "@/types/game";
 import { MONEY_CHAIN } from "@/lib/constants";
+import { findQuestionById } from "@/lib/sessionPersistence";
 
 interface UseGameStateOptions {
   questions: Question[];
@@ -172,6 +173,50 @@ export function useGameState({ questions, players }: UseGameStateOptions) {
     [questions]
   );
 
+  const getUsedQuestionIds = useCallback(
+    () => Array.from(usedQuestionIds.current),
+    []
+  );
+
+  const restoreState = useCallback(
+    (saved: {
+      currentRound: number;
+      chainPosition: number;
+      bankedThisRound: number;
+      totalBanked: number;
+      currentPlayerIndex: number;
+      timeUp: boolean;
+      questionsAsked: number;
+      currentQuestionId: string | null;
+      usedQuestionIds: string[];
+    }) => {
+      if (revealTimerRef.current) {
+        clearTimeout(revealTimerRef.current);
+        revealTimerRef.current = null;
+      }
+      setCurrentRound(saved.currentRound);
+      setChainPosition(saved.chainPosition);
+      setBankedThisRound(saved.bankedThisRound);
+      setTotalBanked(saved.totalBanked);
+      setCurrentPlayerIndex(saved.currentPlayerIndex);
+      setTimeUp(saved.timeUp);
+      setQuestionsAsked(saved.questionsAsked);
+      setQuestionRevealed(false);
+      setPendingReveal(false);
+      usedQuestionIds.current = new Set(saved.usedQuestionIds);
+      const found = findQuestionById(questions, saved.currentQuestionId);
+      setCurrentQuestion(
+        found ??
+          pickRandomQuestion(
+            questions,
+            usedQuestionIds.current,
+            MONEY_CHAIN[saved.chainPosition - 1]?.difficulty ?? "Easy"
+          )
+      );
+    },
+    [questions]
+  );
+
   return {
     currentRound,
     chainPosition,
@@ -193,5 +238,7 @@ export function useGameState({ questions, players }: UseGameStateOptions) {
     handleTimeUp,
     dismissTimeUp,
     resetRound,
+    getUsedQuestionIds,
+    restoreState,
   };
 }

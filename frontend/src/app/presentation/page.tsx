@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useCallback, useRef } from "react";
+import { useMemo, useCallback, useRef, useState, useEffect } from "react";
 import { MoneyChain } from "@/components/presentation/MoneyChain";
 import { Timer } from "@/components/presentation/Timer";
 import {
@@ -10,11 +10,19 @@ import {
 import { TotalScore } from "@/components/presentation/TotalScore";
 import { RoundHeader } from "@/components/presentation/RoundHeader";
 import { TimeUpOverlay } from "@/components/presentation/TimeUpOverlay";
+import { ResumePrompt } from "@/components/presentation/ResumePrompt";
 import { useTimer } from "@/hooks/useTimer";
 import { useGameState } from "@/hooks/useGameState";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useAudio } from "@/hooks/useAudio";
 import { useRoundMetrics } from "@/hooks/useRoundMetrics";
+import { useSessionPersistence } from "@/hooks/useSessionPersistence";
+import {
+  SESSION_VERSION,
+  debouncedSave,
+  flushSave,
+  PersistedGameSession,
+} from "@/lib/sessionPersistence";
 import { MONEY_CHAIN, DEFAULT_PLAYERS, DEFAULT_ROUNDS, MOCK_QUESTIONS } from "@/lib/constants";
 
 export default function PresentationPage() {
@@ -23,6 +31,8 @@ export default function PresentationPage() {
   const roundConfig = DEFAULT_ROUNDS[0];
 
   const questionDisplayRef = useRef<QuestionDisplayHandle>(null);
+  const session = useSessionPersistence();
+  const [sessionDecision, setSessionDecision] = useState<"pending" | "resume" | "new">("pending");
 
   const gameState = useGameState({ questions, players });
   const audio = useAudio();
@@ -37,6 +47,101 @@ export default function PresentationPage() {
     onComplete: handleTimerComplete,
   });
 
+  // Auto-set decision if no saved session
+  useEffect(() => {
+    if (session.isReady && !session.hasSavedSession && sessionDecision === "pending") {
+      setSessionDecision("new");
+    }
+  }, [session.isReady, session.hasSavedSession, sessionDecision]);
+
+  // Handle resume
+  const handleResume = useCallback(() => {
+    const saved = session.savedState;
+    if (!saved) return;
+    gameState.restoreState({
+      currentRound: saved.currentRound,
+      chainPosition: saved.chainPosition,
+      bankedThisRound: saved.bankedThisRound,
+      totalBanked: saved.totalBanked,
+      currentPlayerIndex: saved.currentPlayerIndex,
+      timeUp: saved.timeUp,
+      questionsAsked: saved.questionsAsked,
+      currentQuestionId: saved.currentQuestionId,
+      usedQuestionIds: saved.usedQuestionIds,
+    });
+    timer.restoreTime(saved.timeRemaining);
+    metrics.restoreMetrics({
+      questionsAnswered: saved.questionsAnswered,
+      highestChainPosition: saved.highestChainPosition,
+      longestStreak: saved.longestStreak,
+      currentStreak: saved.currentStreak,
+      playerCorrectCounts: saved.playerCorrectCounts,
+    });
+    audio.restoreMuted(saved.isMuted);
+    setSessionDecision("resume");
+  }, [session.savedState, gameState, timer, metrics, audio]);
+
+  const handleNewGame = useCallback(() => {
+    session.clearSession();
+    setSessionDecision("new");
+  }, [session]);
+
+  // --- Persistence: save on state changes ---
+  const snapshotRef = useRef<PersistedGameSession | null>(null);
+
+  // Update snapshot ref on every render
+  snapshotRef.current = {
+    version: SESSION_VERSION,
+    currentRound: gameState.currentRound,
+    chainPosition: gameState.chainPosition,
+    bankedThisRound: gameState.bankedThisRound,
+    totalBanked: gameState.totalBanked,
+    currentPlayerIndex: gameState.currentPlayerIndex,
+    timeUp: gameState.timeUp,
+    questionsAsked: gameState.questionsAsked,
+    currentQuestionId: gameState.currentQuestion?.id ?? null,
+    usedQuestionIds: gameState.getUsedQuestionIds(),
+    timeRemaining: timer.timeRemaining,
+    isMuted: audio.isMuted,
+    questionsAnswered: metrics.getMetrics(gameState.bankedThisRound).questionsAnswered,
+    highestChainPosition: metrics.getMetrics(gameState.bankedThisRound).highestChainPosition,
+    longestStreak: metrics.getMetrics(gameState.bankedThisRound).longestStreak,
+    currentStreak: metrics.getCurrentStreak(),
+    playerCorrectCounts: metrics.getPlayerCorrectCounts(),
+  };
+
+  // Debounced save whenever key values change
+  useEffect(() => {
+    if (sessionDecision === "pending") return;
+    if (snapshotRef.current) {
+      debouncedSave(snapshotRef.current);
+    }
+  }, [
+    sessionDecision,
+    gameState.currentRound,
+    gameState.chainPosition,
+    gameState.bankedThisRound,
+    gameState.totalBanked,
+    gameState.currentPlayerIndex,
+    gameState.timeUp,
+    gameState.questionsAsked,
+    gameState.currentQuestion,
+    timer.timeRemaining,
+    audio.isMuted,
+  ]);
+
+  // Flush save on tab close / refresh
+  useEffect(() => {
+    const handler = () => {
+      if (snapshotRef.current && sessionDecision !== "pending") {
+        flushSave(snapshotRef.current);
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [sessionDecision]);
+
+  // --- Game actions ---
   const handleStartTimer = useCallback(() => {
     audio.playIntro(() => {
       timer.startWithDelay(0);
@@ -92,6 +197,14 @@ export default function PresentationPage() {
   );
 
   useKeyboardShortcuts(keyboardActions);
+
+  // Don't render until localStorage is read
+  if (!session.isReady) return null;
+
+  // Show resume prompt if saved session exists and user hasn't decided
+  if (session.hasSavedSession && sessionDecision === "pending" && session.savedState) {
+    return <ResumePrompt session={session.savedState} onResume={handleResume} onNewGame={handleNewGame} />;
+  }
 
   return (
     <div className="h-full flex flex-col">
