@@ -1,9 +1,31 @@
+import logging
+
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers import game, rounds, players, ws
+from app.services.game_service import game_service
 
-app = FastAPI(title="Weakest Link API", version="0.1.0")
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: try to restore persisted game state
+    if game_service.load_from_file():
+        logger.info("Restored game state from persisted file")
+    else:
+        logger.info("No persisted state found, starting fresh")
+    yield
+    # Shutdown: save current state
+    game_service.save_to_file()
+    logger.info("Game state saved on shutdown")
+
+
+app = FastAPI(title="Weakest Link API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

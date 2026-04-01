@@ -17,6 +17,8 @@
   --difficulty-medium-hard: #FFB87A;
   --difficulty-hard: #FF8B94;
   --difficulty-spicy: #4A4A5A;
+  --pastel-coral: #FFB4A2;
+  --pastel-gold: #FFE066;
 }
 
 @theme inline {
@@ -36,6 +38,8 @@
   --color-difficulty-medium-hard: var(--difficulty-medium-hard);
   --color-difficulty-hard: var(--difficulty-hard);
   --color-difficulty-spicy: var(--difficulty-spicy);
+  --color-pastel-coral: var(--pastel-coral);
+  --color-pastel-gold: var(--pastel-gold);
   --font-sans: var(--font-nunito), sans-serif;
 }
 
