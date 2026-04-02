@@ -140,6 +140,17 @@ class GameService:
         self.clear_persistence()
         await self._notify_state_change("phase_change")
 
+    async def reset_game(self) -> None:
+        """Reset the game back to lobby, keeping connected players."""
+        players = [Player(id=p.id, name=p.name) for p in self.state.players]
+        self.state = ServerGameState(
+            phase=GamePhase.LOBBY,
+            questions=self._all_questions,
+        )
+        self.state.players = players
+        self.save_to_file()
+        await self._notify_state_change("phase_change")
+
     async def join_player(self, name: str) -> Player:
         """Add a player to the game during lobby phase."""
         if self.state.phase != GamePhase.LOBBY:

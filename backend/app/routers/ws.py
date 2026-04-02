@@ -34,6 +34,9 @@ async def _handle_admin_message(data: dict) -> None:
         if action == "create_game":
             await game_service.create_game()
 
+        elif action == "reset_game":
+            await game_service.reset_game()
+
         elif action == "start_game":
             await game_service.start_game()
 

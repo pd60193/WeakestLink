@@ -52,6 +52,16 @@ export function AdminDashboard() {
           </span>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              if (window.confirm("Reset game? Players will stay connected.")) {
+                sendAction("reset_game");
+              }
+            }}
+            className="text-xs font-semibold text-difficulty-hard/60 hover:text-difficulty-hard px-3 py-1.5 rounded-lg border border-difficulty-hard/20 hover:border-difficulty-hard/40 transition-colors"
+          >
+            Reset Game
+          </button>
           <ConnectionDot status={status} />
           <span className="text-xs text-foreground/40 font-medium">
             {status}
