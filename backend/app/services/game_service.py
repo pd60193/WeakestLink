@@ -1,3 +1,4 @@
+import asyncio
 import json
 import random
 import uuid
@@ -271,13 +272,21 @@ class GameService:
         await self._notify_state_change("state_update")
 
     async def mark_incorrect(self) -> None:
-        """Mark current question as incorrect."""
+        """Mark current question as incorrect. Shows the answer for 1 second, then advances."""
         if self.state.phase != GamePhase.PLAYING:
             return
 
         self.state.round_metrics.record_incorrect()
         self.state.revealed_answer = self.state.current_question.answer if self.state.current_question else None
         self.state.chain_position = 1
+        self.save_to_file()
+        # Broadcast with answer visible under the current question
+        await self._notify_state_change("state_update")
+
+        # Wait 1 second, then advance to next question
+        await asyncio.sleep(1.0)
+
+        self.state.revealed_answer = None
         self._advance_to_next_question(mark_used=True, count_question=True, advance_player=True)
         self.save_to_file()
         await self._notify_state_change("state_update")

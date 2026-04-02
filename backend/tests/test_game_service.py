@@ -180,13 +180,13 @@ class TestGameActions:
         await service.join_player("Alice")
         await service.join_player("Bob")
         await service.start_game()
-        await service.reveal_question()
         return service
 
     @pytest.mark.asyncio
-    async def test_reveal_question(self, playing_service):
+    async def test_question_auto_revealed_on_start(self, playing_service):
         svc = await playing_service
         assert svc.state.question_revealed is True
+        assert svc.state.current_question is not None
 
     @pytest.mark.asyncio
     async def test_mark_correct_advances_chain(self, playing_service):
@@ -197,13 +197,63 @@ class TestGameActions:
         assert svc.state.questions_asked == 1
 
     @pytest.mark.asyncio
+    async def test_mark_incorrect_shows_answer_then_advances(self, playing_service):
+        """Incorrect should show answer under current question, wait 1s, then advance."""
+        svc = await playing_service
+        await svc.mark_correct()  # chain = 2
+        original_question = svc.state.current_question
+        original_answer = original_question.answer
+
+        # Run mark_incorrect — it has a 1s sleep, so we track state changes
+        state_changes = []
+
+        async def track_changes(msg_type):
+            state_changes.append({
+                "revealed_answer": svc.state.revealed_answer,
+                "current_question_id": svc.state.current_question.id if svc.state.current_question else None,
+            })
+
+        svc._on_state_change = track_changes
+        await svc.mark_incorrect()
+
+        # Should have broadcast twice: once with answer, once after advance
+        assert len(state_changes) == 2
+
+        # First broadcast: answer shown under the ORIGINAL question
+        assert state_changes[0]["revealed_answer"] == original_answer
+        assert state_changes[0]["current_question_id"] == original_question.id
+
+        # Second broadcast: answer cleared, new question loaded
+        assert state_changes[1]["revealed_answer"] is None
+        assert state_changes[1]["current_question_id"] != original_question.id
+
+    @pytest.mark.asyncio
     async def test_mark_incorrect_resets_chain(self, playing_service):
         svc = await playing_service
         await svc.mark_correct()  # chain = 2
-        await svc.reveal_question()
         await svc.mark_incorrect()
         assert svc.state.chain_position == 1
-        assert svc.state.revealed_answer is not None
+        # After the full mark_incorrect (including 1s delay), answer is cleared
+        assert svc.state.revealed_answer is None
+
+    @pytest.mark.asyncio
+    async def test_mark_incorrect_answer_matches_question(self, playing_service):
+        """The revealed answer must belong to the question that was answered incorrectly."""
+        svc = await playing_service
+        question_before = svc.state.current_question
+        expected_answer = question_before.answer
+
+        first_broadcast_answer = None
+
+        async def capture_first(msg_type):
+            nonlocal first_broadcast_answer
+            if first_broadcast_answer is None:
+                first_broadcast_answer = svc.state.revealed_answer
+
+        svc._on_state_change = capture_first
+        await svc.mark_incorrect()
+
+        assert first_broadcast_answer == expected_answer
 
     @pytest.mark.asyncio
     async def test_bank_locks_in_value(self, playing_service):
@@ -224,7 +274,6 @@ class TestGameActions:
         svc = await playing_service
         # Manually set chain to position 9
         svc.state.chain_position = 9
-        svc.state.question_revealed = True
         await svc.mark_correct()
         assert svc.state.banked_this_round == 10000
         assert svc.state.chain_position == 1
