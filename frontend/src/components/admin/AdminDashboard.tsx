@@ -33,6 +33,7 @@ export function AdminDashboard() {
         onStartGame={() => sendAction("start_game")}
         onKickPlayer={(id) => sendAction("kick_player", { player_id: id })}
         onCreateGame={() => sendAction("create_game")}
+        onReorderPlayers={(ids) => sendAction("reorder_players", { order: ids })}
       />
     );
   }

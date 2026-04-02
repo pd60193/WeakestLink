@@ -13,6 +13,7 @@ interface LobbySetupProps {
   onStartGame: () => void;
   onKickPlayer: (playerId: string) => void;
   onCreateGame: () => void;
+  onReorderPlayers: (playerIds: string[]) => void;
 }
 
 export function LobbySetup({
@@ -21,10 +22,19 @@ export function LobbySetup({
   onStartGame,
   onKickPlayer,
   onCreateGame,
+  onReorderPlayers,
 }: LobbySetupProps) {
   const canStart = players.length >= 2;
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+
+  const movePlayer = (index: number, direction: -1 | 1) => {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= players.length) return;
+    const ids = players.map((p) => p.id);
+    [ids[index], ids[newIndex]] = [ids[newIndex], ids[index]];
+    onReorderPlayers(ids);
+  };
 
   const handleCreateGame = async () => {
     setCreating(true);
@@ -115,12 +125,30 @@ export function LobbySetup({
                     <span className="font-semibold text-foreground flex-1">
                       {player.name}
                     </span>
-                    <button
-                      onClick={() => onKickPlayer(player.id)}
-                      className="text-xs text-difficulty-hard/60 hover:text-difficulty-hard font-semibold px-2 py-1 rounded transition-colors"
-                    >
-                      Remove
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => movePlayer(i, -1)}
+                        disabled={i === 0}
+                        className="text-foreground/40 hover:text-foreground disabled:opacity-20 disabled:cursor-not-allowed p-1 rounded transition-colors"
+                        title="Move up"
+                      >
+                        {"\u25B2"}
+                      </button>
+                      <button
+                        onClick={() => movePlayer(i, 1)}
+                        disabled={i === players.length - 1}
+                        className="text-foreground/40 hover:text-foreground disabled:opacity-20 disabled:cursor-not-allowed p-1 rounded transition-colors"
+                        title="Move down"
+                      >
+                        {"\u25BC"}
+                      </button>
+                      <button
+                        onClick={() => onKickPlayer(player.id)}
+                        className="text-xs text-difficulty-hard/60 hover:text-difficulty-hard font-semibold px-2 py-1 rounded transition-colors ml-1"
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </motion.div>
                 ))}
               </AnimatePresence>
