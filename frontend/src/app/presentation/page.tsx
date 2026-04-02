@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect, useRef, useCallback } from "react";
 import { MoneyChain } from "@/components/presentation/MoneyChain";
 import { Timer } from "@/components/presentation/Timer";
 import { QuestionDisplay } from "@/components/presentation/QuestionDisplay";
@@ -11,6 +11,7 @@ import { VoteRevealOverlay } from "@/components/presentation/VoteRevealOverlay";
 import { LobbyView } from "@/components/presentation/LobbyView";
 import { GameOverOverlay } from "@/components/presentation/GameOverOverlay";
 import { usePresentationSync } from "@/hooks/useGameSync";
+import { useAudio } from "@/hooks/useAudio";
 import { DEFAULT_ROUNDS } from "@/lib/constants";
 
 export default function PresentationPage() {
@@ -21,6 +22,41 @@ export default function PresentationPage() {
     allVotesRevealed,
     status,
   } = usePresentationSync();
+
+  const audio = useAudio();
+  const prevTimerRunning = useRef(false);
+
+  // Play middle loop when timer starts, stop when timer stops (but not on time-up)
+  useEffect(() => {
+    if (state.timerRunning && !prevTimerRunning.current) {
+      // Timer just started — play intro then loop middle
+      audio.playIntro(() => {
+        // Middle loop starts automatically after intro
+      });
+    } else if (!state.timerRunning && prevTimerRunning.current) {
+      // Timer stopped but NOT time-up — just stop audio
+      // (outro is handled by TimeUpOverlay's onShow callback)
+      if (state.timeRemaining > 0) {
+        audio.stop();
+      }
+    }
+    prevTimerRunning.current = state.timerRunning;
+  }, [state.timerRunning, state.timeRemaining, audio]);
+
+  const handleTimeUpShow = useCallback(() => {
+    audio.playOutro();
+  }, [audio]);
+
+  // Mute toggle keyboard shortcut
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "m" || e.key === "M") {
+        audio.toggleMute();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [audio]);
 
   const roundConfig = DEFAULT_ROUNDS[state.currentRound - 1] ?? DEFAULT_ROUNDS[DEFAULT_ROUNDS.length - 1];
 
@@ -106,6 +142,27 @@ export default function PresentationPage() {
         </div>
       </div>
 
+      {/* Mute toggle */}
+      <button
+        onClick={audio.toggleMute}
+        className="fixed top-4 right-4 z-40 bg-white/80 hover:bg-white rounded-full p-2 shadow-md transition-colors"
+        title={audio.isMuted ? "Unmute (M)" : "Mute (M)"}
+      >
+        {audio.isMuted ? (
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M11 5L6 9H2v6h4l5 4V5z" />
+            <line x1="23" y1="9" x2="17" y2="15" />
+            <line x1="17" y1="9" x2="23" y2="15" />
+          </svg>
+        ) : (
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+          </svg>
+        )}
+      </button>
+
       {/* Bottom: Total Score */}
       <TotalScore
         totalBanked={state.totalBanked}
@@ -119,6 +176,7 @@ export default function PresentationPage() {
           <div className="flex-1 flex items-center justify-center">
             <TimeUpOverlay
               visible={true}
+              onShow={handleTimeUpShow}
               metrics={roundMetrics}
               nextRound={null}
             />
