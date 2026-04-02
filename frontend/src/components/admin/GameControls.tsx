@@ -9,6 +9,7 @@ interface GameControlsProps {
   chainPosition: number;
   timerRunning: boolean;
   timerPaused: boolean;
+  timerIntro?: boolean;
   onAction: (action: string) => void;
 }
 
@@ -20,6 +21,7 @@ export function GameControls({
   chainPosition,
   timerRunning,
   timerPaused,
+  timerIntro,
   onAction,
 }: GameControlsProps) {
   const isPlaying = phase === "playing";
@@ -79,10 +81,10 @@ export function GameControls({
           <motion.button
             whileTap={{ scale: 0.95 }}
             className={`${buttonBase} bg-pastel-mint hover:bg-pastel-mint/80 text-foreground`}
-            disabled={!isPlaying}
+            disabled={!isPlaying || timerIntro}
             onClick={() => onAction("start_timer")}
           >
-            {"\u25B6"} Start Timer
+            {timerIntro ? "\u23F3 Intro..." : "\u25B6 Start Timer"}
           </motion.button>
         ) : (
           <motion.button

@@ -24,21 +24,23 @@ export default function PresentationPage() {
   } = usePresentationSync();
 
   const audio = useAudio();
+  const prevTimerIntro = useRef(false);
   const prevTimerRunning = useRef(false);
 
-  // Play middle loop when timer starts, stop when timer stops (but not on time-up)
+  // Play intro music when server signals intro phase
   useEffect(() => {
-    if (state.timerRunning && !prevTimerRunning.current) {
-      // Timer just started — play intro then loop middle
+    if (state.timerIntro && !prevTimerIntro.current) {
       audio.playIntro(() => {
-        // Middle loop starts automatically after intro
+        // Middle loop starts automatically after intro ends
       });
-    } else if (!state.timerRunning && prevTimerRunning.current) {
-      // Timer stopped but NOT time-up — just stop audio
-      // (outro is handled by TimeUpOverlay's onShow callback)
-      if (state.timeRemaining > 0) {
-        audio.stop();
-      }
+    }
+    prevTimerIntro.current = state.timerIntro;
+  }, [state.timerIntro, audio]);
+
+  // Stop music when timer stops (but not on time-up — outro handles that)
+  useEffect(() => {
+    if (!state.timerRunning && prevTimerRunning.current && state.timeRemaining > 0) {
+      audio.stop();
     }
     prevTimerRunning.current = state.timerRunning;
   }, [state.timerRunning, state.timeRemaining, audio]);

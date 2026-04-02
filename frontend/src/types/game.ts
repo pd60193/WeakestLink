@@ -95,6 +95,7 @@ export interface PresentationState {
   timeRemaining: number;
   timerRunning: boolean;
   timerPaused: boolean;
+  timerIntro: boolean;
   currentQuestion: Omit<Question, "answer"> | null;
   players: Player[];
   questionsAsked: number;

@@ -86,6 +86,7 @@ class ServerGameState(BaseModel):
     time_remaining: int = 150
     timer_running: bool = False
     timer_paused: bool = False
+    timer_intro: bool = False
     current_question: Optional[Question] = None
     used_question_ids: List[str] = Field(default_factory=list)
     players: List[Player] = Field(default_factory=list)
@@ -123,6 +124,7 @@ class ServerGameState(BaseModel):
             "timeRemaining": self.time_remaining,
             "timerRunning": self.timer_running,
             "timerPaused": self.timer_paused,
+            "timerIntro": self.timer_intro,
             "currentQuestion": _question_without_answer(self.current_question) if self.current_question else None,
             "players": [_player_dict(p) for p in self.players],
             "questionsAsked": self.questions_asked,
@@ -145,6 +147,7 @@ class ServerGameState(BaseModel):
             "timeRemaining": self.time_remaining,
             "timerRunning": self.timer_running,
             "timerPaused": self.timer_paused,
+            "timerIntro": self.timer_intro,
             "currentQuestion": _question_dict(self.current_question) if self.current_question else None,
             "players": [_player_dict(p) for p in self.players],
             "questionsAsked": self.questions_asked,

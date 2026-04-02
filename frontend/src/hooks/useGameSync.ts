@@ -24,6 +24,7 @@ const INITIAL_PRESENTATION_STATE: PresentationState = {
   timeRemaining: 150,
   timerRunning: false,
   timerPaused: false,
+  timerIntro: false,
   currentQuestion: null,
   players: [],
   questionsAsked: 0,

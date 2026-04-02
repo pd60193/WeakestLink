@@ -215,11 +215,27 @@ class GameService:
     # --- Timer ---
 
     async def start_timer(self) -> None:
-        """Start the round timer. Also reveals the first question if not yet revealed."""
+        """Start the round timer with a 5-second intro phase.
+
+        Sets timer_intro=True and broadcasts immediately. After 5 seconds,
+        clears the intro flag, reveals the question, and starts the countdown.
+        Returns after the intro completes (caller should start timer_service after).
+        """
         if self.state.phase != GamePhase.PLAYING:
             return
-        self.state.timer_running = True
+        # Phase 1: intro
+        self.state.timer_intro = True
+        self.state.timer_running = False
         self.state.timer_paused = False
+        self.save_to_file()
+        await self._notify_state_change("state_update")
+
+        # Wait for intro to finish
+        await asyncio.sleep(5)
+
+        # Phase 2: actual timer start
+        self.state.timer_intro = False
+        self.state.timer_running = True
         if not self.state.question_revealed:
             self.state.question_revealed = True
         self.save_to_file()

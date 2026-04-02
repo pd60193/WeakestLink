@@ -117,6 +117,7 @@ export function AdminDashboard() {
                 chainPosition={state.chainPosition}
                 timerRunning={state.timerRunning}
                 timerPaused={state.timerPaused}
+                timerIntro={state.timerIntro}
                 onAction={sendAction}
               />
             </>
