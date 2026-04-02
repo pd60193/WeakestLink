@@ -72,7 +72,11 @@ async def _handle_admin_message(data: dict) -> None:
             await timer_service.start()
 
         elif action == "toggle_pause":
+            was_paused = game_service.state.timer_paused
             await game_service.toggle_pause()
+            # If we just resumed, ensure the timer service task is still running
+            if was_paused and not game_service.state.timer_paused:
+                await timer_service.start()
 
         elif action == "reveal_question":
             await game_service.reveal_question()

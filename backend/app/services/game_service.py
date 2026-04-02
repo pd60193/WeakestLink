@@ -243,9 +243,16 @@ class GameService:
 
     async def toggle_pause(self) -> None:
         """Toggle timer pause/resume."""
-        if not self.state.timer_running:
+        if self.state.phase != GamePhase.PLAYING:
             return
-        self.state.timer_paused = not self.state.timer_paused
+        if not self.state.timer_running and not self.state.timer_paused:
+            return
+        # If resuming from pause, ensure timer_running is restored
+        if self.state.timer_paused:
+            self.state.timer_paused = False
+            self.state.timer_running = True
+        else:
+            self.state.timer_paused = True
         self.save_to_file()
         await self._notify_state_change("state_update")
 
