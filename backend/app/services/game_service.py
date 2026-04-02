@@ -371,7 +371,11 @@ class GameService:
         return None
 
     async def end_voting(self) -> dict:
-        """End voting, tally votes, determine who is eliminated."""
+        """End voting, tally votes, determine who should be eliminated.
+
+        Does NOT mark the player as eliminated yet — that happens in
+        confirm_elimination() after the admin has revealed all votes.
+        """
         if self.state.phase != GamePhase.VOTING:
             raise ValueError("Not in voting phase")
 
@@ -382,6 +386,7 @@ class GameService:
         if not vote_tally:
             # No votes cast — no elimination
             self.state.phase = GamePhase.ROUND_TRANSITION
+            self.state.pending_elimination_id = None
             self.save_to_file()
             await self._notify_state_change("phase_change")
             return {"eliminated": None, "votes": vote_tally}
@@ -393,7 +398,6 @@ class GameService:
             eliminated_id = tied_players[0]
         else:
             # Tiebreaker: eliminated players' votes decide
-            # Count only eliminated players' votes among tied candidates
             tie_tally = {}
             for voter_id, voted_for in self.state.votes.items():
                 if voter_id in {p.id for p in self.state.eliminated_players} and voted_for in tied_players:
@@ -402,24 +406,14 @@ class GameService:
             if tie_tally:
                 max_tie = max(tie_tally.values())
                 tie_winners = [pid for pid, count in tie_tally.items() if count == max_tie]
-                eliminated_id = tie_winners[0]  # If still tied, first in list
+                eliminated_id = tie_winners[0]
             else:
-                eliminated_id = tied_players[0]  # Fallback: first tied player
+                eliminated_id = tied_players[0]
 
-        # Build reveal order BEFORE marking elimination (so eliminated player is included)
+        # Build reveal order (all active players, including the one about to be eliminated)
         active_ids = [p.id for p in self.state.active_players]
         reveal_order_ids = self.state.round_metrics.get_player_order_from_strongest(active_ids)
 
-        # Mark player as eliminated
-        eliminated_player = None
-        for p in self.state.players:
-            if p.id == eliminated_id:
-                p.is_eliminated = True
-                eliminated_player = p
-                self.state.eliminated_players.append(p)
-                break
-
-        # Build name maps
         id_to_name = {p.id: p.name for p in self.state.players}
 
         vote_reveal_order = []
@@ -432,6 +426,15 @@ class GameService:
                     "votedForId": target_id,
                     "votedForName": id_to_name.get(target_id, "Unknown"),
                 })
+
+        # Store pending elimination — NOT yet applied
+        self.state.pending_elimination_id = eliminated_id
+
+        eliminated_player = None
+        for p in self.state.players:
+            if p.id == eliminated_id:
+                eliminated_player = p
+                break
 
         result = {
             "eliminated": {
@@ -447,6 +450,23 @@ class GameService:
         self.save_to_file()
         await self._notify_state_change("vote_result")
         return result
+
+    async def confirm_elimination(self) -> None:
+        """Actually eliminate the pending player and transition to next round."""
+        if self.state.phase != GamePhase.ELIMINATION:
+            raise ValueError("Not in elimination phase")
+
+        # Apply the pending elimination
+        if self.state.pending_elimination_id:
+            for p in self.state.players:
+                if p.id == self.state.pending_elimination_id:
+                    p.is_eliminated = True
+                    self.state.eliminated_players.append(p)
+                    break
+            self.state.pending_elimination_id = None
+
+        self.save_to_file()
+        await self._notify_state_change("state_update")
 
     # --- Round Transitions ---
 

@@ -121,7 +121,8 @@ async def _handle_admin_message(data: dict) -> None:
             ))
 
         elif action == "confirm_elimination":
-            # Transition to next round
+            # Apply elimination, then transition to next round
+            await game_service.confirm_elimination()
             await game_service.transition_to_round_screen()
             await game_service.next_round()
 

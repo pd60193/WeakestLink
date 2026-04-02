@@ -95,6 +95,7 @@ class ServerGameState(BaseModel):
     eliminated_players: List[Player] = Field(default_factory=list)
     questions_asked: int = 0
     revealed_answer: Optional[str] = None
+    pending_elimination_id: Optional[str] = None
 
     model_config = {"arbitrary_types_allowed": True}
 

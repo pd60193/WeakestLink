@@ -318,7 +318,7 @@ class TestVoting:
             await svc.cast_vote(player.id, player.id)
 
     @pytest.mark.asyncio
-    async def test_end_voting_eliminates_player(self, voting_service):
+    async def test_end_voting_determines_but_defers_elimination(self, voting_service):
         svc = await voting_service
         players = svc.state.players
         # Alice and Charlie vote for Bob
@@ -327,6 +327,20 @@ class TestVoting:
         result = await svc.end_voting()
         assert result["eliminated"]["name"] == "Bob"
         assert svc.state.phase == GamePhase.ELIMINATION
+        # Bob is NOT yet eliminated — pending until confirm
+        assert not players[1].is_eliminated
+        assert svc.state.pending_elimination_id == players[1].id
+
+    @pytest.mark.asyncio
+    async def test_confirm_elimination_applies(self, voting_service):
+        svc = await voting_service
+        players = svc.state.players
+        await svc.cast_vote(players[0].id, players[1].id)
+        await svc.cast_vote(players[2].id, players[1].id)
+        await svc.end_voting()
+        await svc.confirm_elimination()
+        assert players[1].is_eliminated
+        assert svc.state.pending_elimination_id is None
 
     @pytest.mark.asyncio
     async def test_vote_reveal_order_in_result(self, voting_service):
@@ -370,6 +384,8 @@ class TestVoting:
         assert result is not None
         assert result["eliminated"]["name"] == "Bob"
         assert svc.state.phase == GamePhase.ELIMINATION
+        # Bob is NOT yet eliminated — pending
+        assert not players[1].is_eliminated
 
     @pytest.mark.asyncio
     async def test_next_round_after_elimination(self, voting_service):
@@ -378,6 +394,7 @@ class TestVoting:
         await svc.cast_vote(players[0].id, players[1].id)
         await svc.cast_vote(players[2].id, players[1].id)
         await svc.end_voting()
+        await svc.confirm_elimination()
         await svc.next_round()
         assert svc.state.phase == GamePhase.PLAYING
         assert svc.state.current_round == 2
