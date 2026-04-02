@@ -1,10 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Player } from "@/types/game";
+import type { ConnectionStatus } from "@/lib/websocket";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 interface LobbySetupProps {
   players: Player[];
+  connectionStatus: ConnectionStatus;
   onStartGame: () => void;
   onKickPlayer: (playerId: string) => void;
   onCreateGame: () => void;
@@ -12,11 +17,39 @@ interface LobbySetupProps {
 
 export function LobbySetup({
   players,
+  connectionStatus,
   onStartGame,
   onKickPlayer,
   onCreateGame,
 }: LobbySetupProps) {
   const canStart = players.length >= 2;
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  const handleCreateGame = async () => {
+    setCreating(true);
+    setCreateError(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/game/create`, { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ detail: "Failed to create game" }));
+        throw new Error(data.detail || "Failed to create game");
+      }
+      // Also trigger via WebSocket so the state broadcasts to all clients
+      onCreateGame();
+    } catch (e) {
+      setCreateError(e instanceof Error ? e.message : "Could not reach server. Is the backend running?");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const statusColor =
+    connectionStatus === "connected"
+      ? "bg-green-400"
+      : connectionStatus === "connecting"
+        ? "bg-yellow-400 animate-pulse"
+        : "bg-red-400";
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
@@ -26,6 +59,16 @@ export function LobbySetup({
             The Weakest Link
           </h1>
           <p className="text-foreground/50 font-semibold">Host Control Panel</p>
+          <div className="flex items-center justify-center gap-2 mt-2">
+            <span className={`inline-block w-2 h-2 rounded-full ${statusColor}`} />
+            <span className="text-xs text-foreground/40">
+              {connectionStatus === "connected"
+                ? "Connected to server"
+                : connectionStatus === "connecting"
+                  ? "Connecting to server..."
+                  : "Server disconnected"}
+            </span>
+          </div>
         </div>
 
         <div className="bg-white/90 rounded-2xl p-6 shadow-lg border border-pastel-lilac/20 mb-4">
@@ -41,11 +84,17 @@ export function LobbySetup({
           {players.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-foreground/40 mb-4">No players yet</p>
+              {createError && (
+                <p className="text-difficulty-hard text-sm font-semibold mb-3">
+                  {createError}
+                </p>
+              )}
               <button
-                onClick={onCreateGame}
-                className="bg-pastel-sky hover:bg-pastel-sky/80 text-foreground font-bold px-6 py-3 rounded-xl transition-colors"
+                onClick={handleCreateGame}
+                disabled={creating}
+                className="bg-pastel-sky hover:bg-pastel-sky/80 disabled:opacity-50 text-foreground font-bold px-6 py-3 rounded-xl transition-colors"
               >
-                Create New Game
+                {creating ? "Creating..." : "Create New Game"}
               </button>
             </div>
           ) : (

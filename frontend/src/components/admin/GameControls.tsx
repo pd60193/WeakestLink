@@ -37,7 +37,7 @@ export function GameControls({
           disabled={!canAnswer}
           onClick={() => onAction("correct")}
         >
-          <span className="block text-2xl mb-0.5">&#10003;</span>
+          <span className="block text-2xl mb-0.5">{"\u2713"}</span>
           Correct
         </motion.button>
 
@@ -47,7 +47,7 @@ export function GameControls({
           disabled={!canAnswer}
           onClick={() => onAction("incorrect")}
         >
-          <span className="block text-2xl mb-0.5">&#10007;</span>
+          <span className="block text-2xl mb-0.5">{"\u2717"}</span>
           Incorrect
         </motion.button>
 
@@ -80,7 +80,7 @@ export function GameControls({
             disabled={!isPlaying}
             onClick={() => onAction("start_timer")}
           >
-            &#9654; Start Timer
+            {"\u25B6"} Start Timer
           </motion.button>
         ) : (
           <motion.button
@@ -88,7 +88,7 @@ export function GameControls({
             className={`${buttonBase} ${timerPaused ? "bg-pastel-mint hover:bg-pastel-mint/80" : "bg-pastel-peach hover:bg-pastel-peach/80"} text-foreground`}
             onClick={() => onAction("toggle_pause")}
           >
-            {timerPaused ? "&#9654; Resume" : "&#9646;&#9646; Pause"}
+            {timerPaused ? "\u25B6 Resume" : "\u23F8 Pause"}
           </motion.button>
         )}
       </div>

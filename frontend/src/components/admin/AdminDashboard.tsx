@@ -29,6 +29,7 @@ export function AdminDashboard() {
     return (
       <LobbySetup
         players={state.players}
+        connectionStatus={status}
         onStartGame={() => sendAction("start_game")}
         onKickPlayer={(id) => sendAction("kick_player", { player_id: id })}
         onCreateGame={() => sendAction("create_game")}
