@@ -64,9 +64,20 @@ export default function PlayerPage() {
     return <GameOverView players={state.players} totalBanked={state.totalBanked} />;
   }
 
-  // Elimination reveal
-  if (state.phase === "elimination" && voteResult) {
+  // Elimination reveal — only show once the admin reveals the eliminated player
+  if (state.phase === "elimination" && voteResult?.eliminated) {
     return <EliminationReveal voteResult={voteResult} currentPlayerId={playerId} />;
+  }
+
+  // Elimination phase but name not revealed yet — show waiting state
+  if (state.phase === "elimination") {
+    return (
+      <div className="min-h-[100dvh] bg-background flex flex-col items-center justify-center px-6">
+        <p className="text-xl font-bold text-foreground/60 animate-pulse">
+          Revealing votes...
+        </p>
+      </div>
+    );
   }
 
   // Eliminated players get a reduced spectate view

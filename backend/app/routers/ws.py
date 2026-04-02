@@ -40,11 +40,13 @@ async def _broadcast_vote_result(result: dict) -> None:
         type="vote_result",
         payload=presentation_payload,
     ))
+    # Don't send eliminated player to players yet — wait for confirm_elimination
+    # so the admin can do the dramatic vote reveal first
     await ws_manager.broadcast_to_all_players(
         lambda pid: ServerMessage(
             type="vote_result",
             payload={
-                "eliminated": result.get("eliminated"),
+                "eliminated": None,
                 "votes": result.get("votes"),
             },
         )
@@ -125,6 +127,21 @@ async def _handle_admin_message(data: dict) -> None:
             ))
 
         elif action == "confirm_elimination":
+            # Reveal eliminated player to players before applying elimination
+            pid = game_service.state.pending_elimination_id
+            eliminated_info = None
+            if pid:
+                for p in game_service.state.players:
+                    if p.id == pid:
+                        eliminated_info = {"id": p.id, "name": p.name}
+                        break
+            if eliminated_info:
+                await ws_manager.broadcast_to_all_players(
+                    lambda _pid: ServerMessage(
+                        type="elimination_reveal",
+                        payload={"eliminated": eliminated_info},
+                    )
+                )
             # Apply elimination, then transition to next round
             await game_service.confirm_elimination()
             await game_service.transition_to_round_screen()

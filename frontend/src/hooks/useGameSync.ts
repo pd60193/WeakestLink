@@ -160,6 +160,9 @@ export function usePlayerSync(playerId: string | null) {
       setState(msg.payload as unknown as PlayerState);
     } else if (msg.type === "vote_result") {
       setVoteResult(msg.payload as unknown as VoteResult);
+    } else if (msg.type === "elimination_reveal") {
+      const payload = msg.payload as { eliminated: { id: string; name: string } };
+      setVoteResult((prev) => prev ? { ...prev, eliminated: payload.eliminated } : { eliminated: payload.eliminated, votes: {} });
     } else if (msg.type === "error") {
       setError((msg.payload as { message?: string }).message ?? "Unknown error");
     }
