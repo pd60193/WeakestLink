@@ -36,7 +36,8 @@ export default function PresentationPage() {
   }
 
   // Map server question to the shape QuestionDisplay expects
-  const question = state.currentQuestion
+  // Hide question until revealed (first question waits for timer start)
+  const question = state.currentQuestion && state.questionRevealed
     ? {
         id: state.currentQuestion.id,
         text: state.currentQuestion.text,

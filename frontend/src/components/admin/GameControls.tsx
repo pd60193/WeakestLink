@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import type { GamePhase } from "@/types/game";
 
@@ -25,6 +26,18 @@ export function GameControls({
   const canAnswer = isPlaying;
   const canBank = isPlaying && chainPosition > 1;
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      const key = e.key.toLowerCase();
+      if (key === "c" && canAnswer) onAction("correct");
+      else if (key === "x" && canAnswer) onAction("incorrect");
+      else if (key === "b" && canBank) onAction("bank");
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [canAnswer, canBank, onAction]);
+
   return (
     <div className="space-y-4">
       {/* Primary game actions */}
@@ -36,7 +49,7 @@ export function GameControls({
           onClick={() => onAction("correct")}
         >
           <span className="block text-2xl mb-0.5">{"\u2713"}</span>
-          Correct
+          Correct <span className="text-xs opacity-50">(C)</span>
         </motion.button>
 
         <motion.button
@@ -46,7 +59,7 @@ export function GameControls({
           onClick={() => onAction("incorrect")}
         >
           <span className="block text-2xl mb-0.5">{"\u2717"}</span>
-          Incorrect
+          Incorrect <span className="text-xs opacity-50">(X)</span>
         </motion.button>
 
         <motion.button
@@ -56,7 +69,7 @@ export function GameControls({
           onClick={() => onAction("bank")}
         >
           <span className="block text-2xl mb-0.5">$</span>
-          Bank
+          Bank <span className="text-xs opacity-50">(B)</span>
         </motion.button>
       </div>
 

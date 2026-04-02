@@ -215,11 +215,13 @@ class GameService:
     # --- Timer ---
 
     async def start_timer(self) -> None:
-        """Start the round timer."""
+        """Start the round timer. Also reveals the first question if not yet revealed."""
         if self.state.phase != GamePhase.PLAYING:
             return
         self.state.timer_running = True
         self.state.timer_paused = False
+        if not self.state.question_revealed:
+            self.state.question_revealed = True
         self.save_to_file()
         await self._notify_state_change("state_update")
 
@@ -490,7 +492,6 @@ class GameService:
         used = set(self.state.used_question_ids)
         question = _pick_random_question(self.state.questions, used, difficulty)
         self.state.current_question = question
-        self.state.question_revealed = True
 
     def _advance_to_next_question(
         self,
@@ -513,6 +514,7 @@ class GameService:
                 )
 
         self._pick_next_question()
+        self.state.question_revealed = True
 
 
 # Singleton instance

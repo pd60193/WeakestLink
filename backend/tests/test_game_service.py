@@ -180,13 +180,20 @@ class TestGameActions:
         await service.join_player("Alice")
         await service.join_player("Bob")
         await service.start_game()
+        await service.start_timer()
         return service
 
     @pytest.mark.asyncio
-    async def test_question_auto_revealed_on_start(self, playing_service):
-        svc = await playing_service
-        assert svc.state.question_revealed is True
-        assert svc.state.current_question is not None
+    async def test_question_hidden_until_timer_starts(self, service):
+        await service.create_game()
+        await service.join_player("Alice")
+        await service.join_player("Bob")
+        await service.start_game()
+        assert service.state.current_question is not None
+        assert service.state.question_revealed is False
+
+        await service.start_timer()
+        assert service.state.question_revealed is True
 
     @pytest.mark.asyncio
     async def test_mark_correct_advances_chain(self, playing_service):
