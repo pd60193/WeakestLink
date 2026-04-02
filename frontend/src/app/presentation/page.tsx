@@ -144,8 +144,8 @@ export default function PresentationPage() {
         </div>
       </div>
 
-      {/* Audio controls */}
-      <div className="fixed top-4 right-4 z-40 flex items-center gap-2">
+      {/* Audio controls — to the left of the player name in header */}
+      <div className="fixed top-4 right-40 z-40 flex items-center gap-2">
         {!audio.isUnlocked ? (
           <button
             onClick={audio.unlock}
