@@ -5,14 +5,12 @@ import { MONEY_CHAIN, DIFFICULTY_COLORS } from "@/lib/constants";
 
 interface QuestionCardProps {
   question: Question | null;
-  questionRevealed: boolean;
   chainPosition: number;
   questionsAsked: number;
 }
 
 export function QuestionCard({
   question,
-  questionRevealed,
   chainPosition,
   questionsAsked,
 }: QuestionCardProps) {
@@ -49,11 +47,9 @@ export function QuestionCard({
               Question
             </p>
             <p className="text-foreground font-semibold text-lg leading-snug">
-              {questionRevealed
-                ? question.text ?? "[Image question]"
-                : "Press Reveal to show question"}
+              {question.text ?? "[Image question]"}
             </p>
-            {question.imageUrl && questionRevealed && (
+            {question.imageUrl && (
               <div className="mt-2 bg-pastel-cream rounded-lg p-2 text-sm text-foreground/50">
                 Image: {question.imageUrl}
               </div>

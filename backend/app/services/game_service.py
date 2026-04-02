@@ -246,7 +246,7 @@ class GameService:
 
     async def mark_correct(self) -> None:
         """Mark current question as correct."""
-        if self.state.phase != GamePhase.PLAYING or not self.state.question_revealed:
+        if self.state.phase != GamePhase.PLAYING:
             return
 
         player = self.state.current_player
@@ -272,7 +272,7 @@ class GameService:
 
     async def mark_incorrect(self) -> None:
         """Mark current question as incorrect."""
-        if self.state.phase != GamePhase.PLAYING or not self.state.question_revealed:
+        if self.state.phase != GamePhase.PLAYING:
             return
 
         self.state.round_metrics.record_incorrect()
@@ -470,7 +470,7 @@ class GameService:
         used = set(self.state.used_question_ids)
         question = _pick_random_question(self.state.questions, used, difficulty)
         self.state.current_question = question
-        self.state.question_revealed = False
+        self.state.question_revealed = True
 
     def _advance_to_next_question(
         self,

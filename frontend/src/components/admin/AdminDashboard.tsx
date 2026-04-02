@@ -67,13 +67,11 @@ export function AdminDashboard() {
             <>
               <QuestionCard
                 question={state.currentQuestion}
-                questionRevealed={state.questionRevealed}
                 chainPosition={state.chainPosition}
                 questionsAsked={state.questionsAsked}
               />
               <GameControls
                 phase={state.phase}
-                questionRevealed={state.questionRevealed}
                 chainPosition={state.chainPosition}
                 timerRunning={state.timerRunning}
                 timerPaused={state.timerPaused}

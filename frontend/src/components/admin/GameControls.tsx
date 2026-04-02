@@ -5,7 +5,6 @@ import type { GamePhase } from "@/types/game";
 
 interface GameControlsProps {
   phase: GamePhase;
-  questionRevealed: boolean;
   chainPosition: number;
   timerRunning: boolean;
   timerPaused: boolean;
@@ -17,14 +16,13 @@ const buttonBase =
 
 export function GameControls({
   phase,
-  questionRevealed,
   chainPosition,
   timerRunning,
   timerPaused,
   onAction,
 }: GameControlsProps) {
   const isPlaying = phase === "playing";
-  const canAnswer = isPlaying && questionRevealed;
+  const canAnswer = isPlaying;
   const canBank = isPlaying && chainPosition > 1;
 
   return (
@@ -62,17 +60,8 @@ export function GameControls({
         </motion.button>
       </div>
 
-      {/* Question & Timer controls */}
-      <div className="grid grid-cols-2 gap-3">
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          className={`${buttonBase} bg-pastel-sky hover:bg-pastel-sky/80 text-foreground`}
-          disabled={!isPlaying || questionRevealed}
-          onClick={() => onAction("reveal_question")}
-        >
-          {questionRevealed ? "Question Shown" : "Reveal Question"}
-        </motion.button>
-
+      {/* Timer controls */}
+      <div className="grid grid-cols-1 gap-3">
         {!timerRunning ? (
           <motion.button
             whileTap={{ scale: 0.95 }}

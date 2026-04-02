@@ -83,7 +83,6 @@ export default function PresentationPage() {
 
         <QuestionDisplay
           question={question}
-          revealed={state.questionRevealed}
           questionNumber={state.questionsAsked + 1}
           revealedAnswer={state.revealedAnswer}
         />

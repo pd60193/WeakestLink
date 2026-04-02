@@ -7,7 +7,6 @@ import { useTypewriter } from "@/hooks/useTypewriter";
 
 interface QuestionDisplayProps {
   question: Question | null;
-  revealed: boolean;
   questionNumber: number;
   revealedAnswer?: string | null;
 }
@@ -19,14 +18,14 @@ export interface QuestionDisplayHandle {
 export const QuestionDisplay = forwardRef<
   QuestionDisplayHandle,
   QuestionDisplayProps
->(function QuestionDisplay({ question, revealed, questionNumber, revealedAnswer }, ref) {
+>(function QuestionDisplay({ question, questionNumber, revealedAnswer }, ref) {
   const hasImage = !!question?.imageUrl;
   const questionText = question?.text ?? "";
 
   const { displayedText, isComplete, snapComplete } = useTypewriter({
-    text: revealed ? questionText : "",
+    text: questionText,
     speed: 40,
-    enabled: revealed && questionText.length > 0,
+    enabled: questionText.length > 0,
   });
 
   useImperativeHandle(ref, () => ({ snapComplete }), [snapComplete]);
@@ -34,7 +33,7 @@ export const QuestionDisplay = forwardRef<
   return (
     <div className="flex flex-col items-center justify-center flex-1 px-8">
       <AnimatePresence mode="wait">
-        {!revealed ? (
+        {!question ? (
           <motion.div
             key="hidden"
             initial={{ opacity: 0 }}
@@ -50,7 +49,7 @@ export const QuestionDisplay = forwardRef<
               <span className="text-3xl">?</span>
             </motion.div>
             <span className="text-lg font-semibold text-foreground/40 tracking-wide">
-              Press Space to reveal
+              Waiting for question...
             </span>
           </motion.div>
         ) : (
@@ -121,13 +120,6 @@ export const QuestionDisplay = forwardRef<
               )}
             </AnimatePresence>
 
-            {question && !revealedAnswer && (
-              <div className="mt-4 flex justify-center gap-6 text-sm font-semibold text-foreground/40">
-                <span>C = Correct</span>
-                <span>X = Incorrect</span>
-                <span>B = Bank</span>
-              </div>
-            )}
           </motion.div>
         )}
       </AnimatePresence>
