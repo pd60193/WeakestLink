@@ -38,6 +38,17 @@ yarn-error.log*
 pnpm-debug.log*
 .pnpm-store/
 
+# Playwright
+test-results/
+playwright-report/
+.cache/
+
+# Claude Code
+.claude/
+
+# Runtime data
+backend/app/data/game_session.json
+
 # IDE
 .vscode/
 .idea/
