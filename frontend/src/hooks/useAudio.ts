@@ -23,15 +23,34 @@ export function useAudio(segments: AudioSegments = DEFAULT_SEGMENTS) {
   const currentSegment = useRef<"intro" | "middle" | "outro" | "idle">("idle");
   const animFrameRef = useRef<number | null>(null);
 
+  const unlockedRef = useRef(false);
+
   useEffect(() => {
     const audio = new Audio("/sounds/weakest-link-theme.mp3");
     audio.preload = "auto";
     audio.addEventListener("canplaythrough", () => setIsLoaded(true));
     audioRef.current = audio;
 
+    // Unlock audio on first user interaction (browser autoplay policy)
+    const unlock = () => {
+      if (audioRef.current && !unlockedRef.current) {
+        audioRef.current.play().then(() => {
+          audioRef.current!.pause();
+          audioRef.current!.currentTime = 0;
+          unlockedRef.current = true;
+        }).catch(() => {});
+      }
+      document.removeEventListener("click", unlock);
+      document.removeEventListener("keydown", unlock);
+    };
+    document.addEventListener("click", unlock);
+    document.addEventListener("keydown", unlock);
+
     return () => {
       audio.pause();
       audio.src = "";
+      document.removeEventListener("click", unlock);
+      document.removeEventListener("keydown", unlock);
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     };
   }, []);
