@@ -343,8 +343,8 @@ class GameService:
         self.save_to_file()
         await self._notify_state_change("phase_change")
 
-    async def cast_vote(self, voter_id: str, voted_for_id: str) -> None:
-        """A player casts their vote."""
+    async def cast_vote(self, voter_id: str, voted_for_id: str) -> Optional[dict]:
+        """A player casts their vote. Returns vote result if all active players have voted."""
         if self.state.phase != GamePhase.VOTING:
             raise ValueError("Not in voting phase")
 
@@ -362,6 +362,13 @@ class GameService:
         self.state.votes[voter_id] = voted_for_id
         self.save_to_file()
         await self._notify_state_change("vote_cast")
+
+        # Auto-end voting when all active players have voted
+        active_voter_ids = {p.id for p in self.state.active_players}
+        votes_from_active = {vid for vid in self.state.votes if vid in active_voter_ids}
+        if votes_from_active >= active_voter_ids:
+            return await self.end_voting()
+        return None
 
     async def end_voting(self) -> dict:
         """End voting, tally votes, determine who is eliminated."""
@@ -399,6 +406,10 @@ class GameService:
             else:
                 eliminated_id = tied_players[0]  # Fallback: first tied player
 
+        # Build reveal order BEFORE marking elimination (so eliminated player is included)
+        active_ids = [p.id for p in self.state.active_players]
+        reveal_order_ids = self.state.round_metrics.get_player_order_from_strongest(active_ids)
+
         # Mark player as eliminated
         eliminated_player = None
         for p in self.state.players:
@@ -408,6 +419,20 @@ class GameService:
                 self.state.eliminated_players.append(p)
                 break
 
+        # Build name maps
+        id_to_name = {p.id: p.name for p in self.state.players}
+
+        vote_reveal_order = []
+        for pid in reveal_order_ids:
+            if pid in self.state.votes:
+                target_id = self.state.votes[pid]
+                vote_reveal_order.append({
+                    "voterId": pid,
+                    "voterName": id_to_name.get(pid, "Unknown"),
+                    "votedForId": target_id,
+                    "votedForName": id_to_name.get(target_id, "Unknown"),
+                })
+
         result = {
             "eliminated": {
                 "id": eliminated_player.id,
@@ -415,6 +440,7 @@ class GameService:
             } if eliminated_player else None,
             "votes": vote_tally,
             "fullVotes": self.state.votes,
+            "voteRevealOrder": vote_reveal_order,
         }
 
         self.state.phase = GamePhase.ELIMINATION

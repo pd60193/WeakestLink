@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useAdminSync } from "@/hooks/useGameSync";
 import { GameControls } from "./GameControls";
 import { QuestionCard } from "./QuestionCard";
@@ -22,7 +23,37 @@ function ConnectionDot({ status }: { status: ConnectionStatus }) {
 }
 
 export function AdminDashboard() {
-  const { state, voteResult, status, sendAction, clearVoteResult } = useAdminSync();
+  const {
+    state,
+    voteResult,
+    revealedVoteCount,
+    allVotesRevealed,
+    status,
+    sendAction,
+  } = useAdminSync();
+
+  // Keyboard shortcuts for voting/elimination phases
+  const isElimination = state.phase === "elimination";
+  const revealOrder = voteResult?.voteRevealOrder ?? [];
+  const totalReveals = revealOrder.length;
+  const allRevealed = allVotesRevealed || revealedVoteCount >= totalReveals;
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      const key = e.key.toLowerCase();
+
+      if (key === "n" && isElimination && !allRevealed) {
+        sendAction("reveal_next_vote");
+      } else if (key === "r" && isElimination && !allRevealed) {
+        sendAction("reveal_all_votes");
+      } else if (key === "enter" && isElimination && allRevealed) {
+        sendAction("confirm_elimination");
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isElimination, allRevealed, sendAction]);
 
   // Lobby phase — show setup screen
   if (state.phase === "lobby") {
@@ -98,7 +129,12 @@ export function AdminDashboard() {
               voteCount={state.voteCount}
               totalVotersExpected={state.totalVotersExpected}
               voteResult={voteResult}
+              revealedVoteCount={revealedVoteCount}
+              allVotesRevealed={allVotesRevealed}
               onEndVoting={() => sendAction("end_voting")}
+              onRevealNext={() => sendAction("reveal_next_vote")}
+              onRevealAll={() => sendAction("reveal_all_votes")}
+              onConfirmElimination={() => sendAction("confirm_elimination")}
             />
           )}
         </div>

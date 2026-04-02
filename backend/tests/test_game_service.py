@@ -329,6 +329,49 @@ class TestVoting:
         assert svc.state.phase == GamePhase.ELIMINATION
 
     @pytest.mark.asyncio
+    async def test_vote_reveal_order_in_result(self, voting_service):
+        """end_voting should include voteRevealOrder sorted strongest-first."""
+        svc = await voting_service
+        players = svc.state.players
+        # Give Alice some correct answers to make her strongest
+        svc.state.round_metrics.record_correct(2, players[0].id, 250)
+        svc.state.round_metrics.record_correct(3, players[0].id, 500)
+        # Give Charlie one correct
+        svc.state.round_metrics.record_correct(2, players[2].id, 250)
+
+        await svc.cast_vote(players[0].id, players[1].id)
+        await svc.cast_vote(players[1].id, players[2].id)
+        await svc.cast_vote(players[2].id, players[1].id)
+        result = await svc.end_voting()
+
+        reveal_order = result["voteRevealOrder"]
+        assert len(reveal_order) == 3
+        # Alice is strongest (2 correct, 750 value), so she's first
+        assert reveal_order[0]["voterName"] == "Alice"
+        assert reveal_order[0]["votedForName"] == "Bob"
+        # Each entry has the right shape
+        for entry in reveal_order:
+            assert "voterId" in entry
+            assert "voterName" in entry
+            assert "votedForId" in entry
+            assert "votedForName" in entry
+
+    @pytest.mark.asyncio
+    async def test_auto_end_voting_when_all_active_voted(self, voting_service):
+        """Voting should auto-end when all active players have voted."""
+        svc = await voting_service
+        players = svc.state.players
+        # 4 active players: Alice, Bob, Charlie, Dave
+        await svc.cast_vote(players[0].id, players[1].id)
+        await svc.cast_vote(players[1].id, players[2].id)
+        await svc.cast_vote(players[2].id, players[1].id)
+        # Last vote should trigger auto-end
+        result = await svc.cast_vote(players[3].id, players[1].id)
+        assert result is not None
+        assert result["eliminated"]["name"] == "Bob"
+        assert svc.state.phase == GamePhase.ELIMINATION
+
+    @pytest.mark.asyncio
     async def test_next_round_after_elimination(self, voting_service):
         svc = await voting_service
         players = svc.state.players

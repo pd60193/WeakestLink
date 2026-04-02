@@ -65,6 +65,15 @@ class RoundMetrics(BaseModel):
         candidates.sort(key=lambda x: (x[1], x[2]), reverse=True)
         return candidates[0][0] if candidates else None
 
+    def get_player_order_from_strongest(self, player_order: List[str]) -> List[str]:
+        """Return all player IDs sorted strongest-first using the same tiebreaker rules."""
+        candidates = []
+        for pid in player_order:
+            pm = self.player_metrics.get(pid, PlayerMetrics())
+            candidates.append((pid, pm.correct_count, pm.correct_value))
+        candidates.sort(key=lambda x: (x[1], x[2]), reverse=True)
+        return [c[0] for c in candidates]
+
 
 class ServerGameState(BaseModel):
     phase: GamePhase = GamePhase.LOBBY

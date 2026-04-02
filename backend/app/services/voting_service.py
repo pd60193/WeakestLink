@@ -30,8 +30,12 @@ class VotingService:
 
     async def end_voting(self) -> dict:
         """Stop timer and end voting."""
-        await self._stop_timer()
+        await self.stop_timer()
         return await game_service.end_voting()
+
+    async def stop_timer(self) -> None:
+        """Stop the voting countdown timer."""
+        await self._stop_timer()
 
     async def _stop_timer(self) -> None:
         if self._timer_task and not self._timer_task.done():

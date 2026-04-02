@@ -69,10 +69,18 @@ export interface RoundMetricsData {
   >;
 }
 
+export interface VoteRevealEntry {
+  voterId: string;
+  voterName: string;
+  votedForId: string;
+  votedForName: string;
+}
+
 export interface VoteResult {
   eliminated: { id: string; name: string } | null;
   votes: Record<string, number>;
   fullVotes?: Record<string, string>;
+  voteRevealOrder?: VoteRevealEntry[];
 }
 
 /** State as received from the server for presentation clients. */

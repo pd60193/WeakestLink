@@ -83,7 +83,7 @@ export function RoundInfo({
             End Voting
           </button>
         )}
-        {(phase === "elimination" || phase === "round_transition") && (
+        {phase === "round_transition" && (
           <button
             onClick={() => onAction("next_round")}
             className="flex-1 bg-pastel-mint hover:bg-pastel-mint/80 text-foreground font-bold py-3 rounded-xl transition-colors"

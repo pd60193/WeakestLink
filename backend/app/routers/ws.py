@@ -5,6 +5,7 @@ import logging
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from app.models.game_state import GamePhase
 from app.models.websocket_messages import ClientMessage, ServerMessage
 from app.services.game_service import game_service
 from app.services.timer_service import timer_service
@@ -22,6 +23,32 @@ async def _handle_state_change(event_type: str = "state_update") -> None:
 
 # Wire up the callback
 game_service.set_state_change_callback(_handle_state_change)
+
+
+async def _broadcast_vote_result(result: dict) -> None:
+    """Broadcast vote result to all clients."""
+    await ws_manager.broadcast_to_admins(ServerMessage(
+        type="vote_result",
+        payload=result,
+    ))
+    presentation_payload = {
+        "eliminated": result.get("eliminated"),
+        "votes": result.get("votes"),
+        "voteRevealOrder": result.get("voteRevealOrder"),
+    }
+    await ws_manager.broadcast_to_presentations(ServerMessage(
+        type="vote_result",
+        payload=presentation_payload,
+    ))
+    await ws_manager.broadcast_to_all_players(
+        lambda pid: ServerMessage(
+            type="vote_result",
+            payload={
+                "eliminated": result.get("eliminated"),
+                "votes": result.get("votes"),
+            },
+        )
+    )
 
 
 async def _handle_admin_message(data: dict) -> None:
@@ -67,28 +94,36 @@ async def _handle_admin_message(data: dict) -> None:
             await voting_service.start_voting()
 
         elif action == "end_voting":
-            result = await voting_service.end_voting()
-            await ws_manager.broadcast_to_admins(ServerMessage(
-                type="vote_result",
-                payload=result,
-            ))
+            if game_service.state.phase == GamePhase.VOTING:
+                result = await voting_service.end_voting()
+                await _broadcast_vote_result(result)
+
+        elif action == "reveal_next_vote":
+            # Pass-through broadcast to presentation
             await ws_manager.broadcast_to_presentations(ServerMessage(
-                type="vote_result",
-                payload={
-                    "eliminated": result.get("eliminated"),
-                    "votes": result.get("votes"),
-                },
+                type="reveal_next_vote",
+                payload={},
             ))
-            # Send vote result to all players
-            await ws_manager.broadcast_to_all_players(
-                lambda pid: ServerMessage(
-                    type="vote_result",
-                    payload={
-                        "eliminated": result.get("eliminated"),
-                        "votes": result.get("votes"),
-                    },
-                )
-            )
+            await ws_manager.broadcast_to_admins(ServerMessage(
+                type="reveal_next_vote",
+                payload={},
+            ))
+
+        elif action == "reveal_all_votes":
+            # Pass-through broadcast to presentation
+            await ws_manager.broadcast_to_presentations(ServerMessage(
+                type="reveal_all_votes",
+                payload={},
+            ))
+            await ws_manager.broadcast_to_admins(ServerMessage(
+                type="reveal_all_votes",
+                payload={},
+            ))
+
+        elif action == "confirm_elimination":
+            # Transition to next round
+            await game_service.transition_to_round_screen()
+            await game_service.next_round()
 
         elif action == "next_round":
             await game_service.transition_to_round_screen()
@@ -119,7 +154,12 @@ async def _handle_player_message(data: dict, player_id: str) -> None:
         voted_for = msg.payload.get("voted_for")
         if voted_for:
             try:
-                await game_service.cast_vote(player_id, voted_for)
+                result = await game_service.cast_vote(player_id, voted_for)
+                if result is not None:
+                    # Voting auto-ended — broadcast the result
+                    from app.services.voting_service import voting_service
+                    await voting_service.stop_timer()
+                    await _broadcast_vote_result(result)
             except ValueError as e:
                 await ws_manager.send_to_player(player_id, ServerMessage(
                     type="error",

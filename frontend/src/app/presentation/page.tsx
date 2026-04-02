@@ -7,15 +7,20 @@ import { QuestionDisplay } from "@/components/presentation/QuestionDisplay";
 import { TotalScore } from "@/components/presentation/TotalScore";
 import { RoundHeader } from "@/components/presentation/RoundHeader";
 import { TimeUpOverlay } from "@/components/presentation/TimeUpOverlay";
-import { VotingOverlay } from "@/components/presentation/VotingOverlay";
-import { EliminationOverlay } from "@/components/presentation/EliminationOverlay";
+import { VoteRevealOverlay } from "@/components/presentation/VoteRevealOverlay";
 import { LobbyView } from "@/components/presentation/LobbyView";
 import { GameOverOverlay } from "@/components/presentation/GameOverOverlay";
 import { usePresentationSync } from "@/hooks/useGameSync";
 import { DEFAULT_ROUNDS } from "@/lib/constants";
 
 export default function PresentationPage() {
-  const { state, voteResult, status } = usePresentationSync();
+  const {
+    state,
+    voteResult,
+    revealedVoteCount,
+    allVotesRevealed,
+    status,
+  } = usePresentationSync();
 
   const roundConfig = DEFAULT_ROUNDS[state.currentRound - 1] ?? DEFAULT_ROUNDS[DEFAULT_ROUNDS.length - 1];
 
@@ -51,12 +56,15 @@ export default function PresentationPage() {
   // Determine if time is up (timer stopped and time remaining is 0 during playing phase)
   const isTimeUp = state.phase === "playing" && state.timeRemaining <= 0 && !state.timerRunning;
 
+  // Show voting/elimination overlay (side-by-side with TimeUp)
+  const isVotingOrElimination = state.phase === "voting" || state.phase === "elimination";
+
   // Build round metrics for TimeUpOverlay
   const roundMetrics = {
     questionsAnswered: state.roundMetrics.questionsAnswered,
     bankedThisRound: state.bankedThisRound,
     highestChainPosition: state.roundMetrics.highestChainPosition,
-    highestChainValue: 0, // not critical for display
+    highestChainValue: 0,
     longestStreak: state.roundMetrics.longestStreak,
     strongestLinks: state.roundMetrics.strongestLink ? [state.roundMetrics.strongestLink] : [],
   };
@@ -104,25 +112,35 @@ export default function PresentationPage() {
         bankedThisRound={state.bankedThisRound}
       />
 
-      {/* Time Up Overlay */}
-      <TimeUpOverlay
-        visible={isTimeUp}
-        metrics={roundMetrics}
-        nextRound={state.currentRound < DEFAULT_ROUNDS.length ? state.currentRound + 1 : null}
-      />
+      {/* Time Up + Voting/Reveal Side-by-Side Overlay */}
+      {(isTimeUp || isVotingOrElimination) && (
+        <div className="fixed inset-0 z-50 flex items-stretch bg-foreground/30 backdrop-blur-md">
+          {/* Left: Time's Up + Round Stats */}
+          <div className="flex-1 flex items-center justify-center">
+            <TimeUpOverlay
+              visible={true}
+              metrics={roundMetrics}
+              nextRound={null}
+            />
+          </div>
 
-      {/* Voting Overlay */}
-      <VotingOverlay
-        visible={state.phase === "voting"}
-        voteCount={state.voteCount}
-        totalVotersExpected={state.totalVotersExpected}
-      />
-
-      {/* Elimination Overlay */}
-      <EliminationOverlay
-        visible={state.phase === "elimination"}
-        voteResult={voteResult}
-      />
+          {/* Right: Voting / Vote Reveal */}
+          {isVotingOrElimination && (
+            <div className="flex-1 flex items-center justify-center border-l border-white/10">
+              <div className="w-full h-full p-6">
+                <VoteRevealOverlay
+                  visible={true}
+                  voteResult={voteResult}
+                  voteCount={state.voteCount}
+                  totalVotersExpected={state.totalVotersExpected}
+                  revealedVoteCount={revealedVoteCount}
+                  allVotesRevealed={allVotesRevealed}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Game Over Overlay */}
       <GameOverOverlay

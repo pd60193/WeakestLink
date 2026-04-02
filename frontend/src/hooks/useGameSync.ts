@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import type {
   PresentationState,
@@ -8,7 +8,6 @@ import type {
   PlayerState,
   VoteResult,
   WebSocketMessage,
-  GamePhase,
 } from "@/types/game";
 import type { ConnectionStatus } from "@/lib/websocket";
 
@@ -43,12 +42,27 @@ const INITIAL_PRESENTATION_STATE: PresentationState = {
 export function usePresentationSync() {
   const [state, setState] = useState<PresentationState>(INITIAL_PRESENTATION_STATE);
   const [voteResult, setVoteResult] = useState<VoteResult | null>(null);
+  const [revealedVoteCount, setRevealedVoteCount] = useState(0);
+  const [allVotesRevealed, setAllVotesRevealed] = useState(false);
 
   const onMessage = useCallback((msg: WebSocketMessage) => {
     if (msg.type === "state_update") {
-      setState(msg.payload as unknown as PresentationState);
+      const newState = msg.payload as unknown as PresentationState;
+      setState(newState);
+      // Reset reveal state when entering voting phase
+      if (newState.phase === "voting") {
+        setVoteResult(null);
+        setRevealedVoteCount(0);
+        setAllVotesRevealed(false);
+      }
     } else if (msg.type === "vote_result") {
       setVoteResult(msg.payload as unknown as VoteResult);
+      setRevealedVoteCount(0);
+      setAllVotesRevealed(false);
+    } else if (msg.type === "reveal_next_vote") {
+      setRevealedVoteCount((prev) => prev + 1);
+    } else if (msg.type === "reveal_all_votes") {
+      setAllVotesRevealed(true);
     }
   }, []);
 
@@ -57,7 +71,14 @@ export function usePresentationSync() {
     onMessage,
   });
 
-  return { state, voteResult, status, clearVoteResult: () => setVoteResult(null) };
+  return {
+    state,
+    voteResult,
+    revealedVoteCount,
+    allVotesRevealed,
+    status,
+    clearVoteResult: () => setVoteResult(null),
+  };
 }
 
 // --- Admin Sync ---
@@ -71,12 +92,26 @@ const INITIAL_ADMIN_STATE: AdminState = {
 export function useAdminSync() {
   const [state, setState] = useState<AdminState>(INITIAL_ADMIN_STATE);
   const [voteResult, setVoteResult] = useState<VoteResult | null>(null);
+  const [revealedVoteCount, setRevealedVoteCount] = useState(0);
+  const [allVotesRevealed, setAllVotesRevealed] = useState(false);
 
   const onMessage = useCallback((msg: WebSocketMessage) => {
     if (msg.type === "state_update") {
-      setState(msg.payload as unknown as AdminState);
+      const newState = msg.payload as unknown as AdminState;
+      setState(newState);
+      if (newState.phase === "voting") {
+        setVoteResult(null);
+        setRevealedVoteCount(0);
+        setAllVotesRevealed(false);
+      }
     } else if (msg.type === "vote_result") {
       setVoteResult(msg.payload as unknown as VoteResult);
+      setRevealedVoteCount(0);
+      setAllVotesRevealed(false);
+    } else if (msg.type === "reveal_next_vote") {
+      setRevealedVoteCount((prev) => prev + 1);
+    } else if (msg.type === "reveal_all_votes") {
+      setAllVotesRevealed(true);
     }
   }, []);
 
@@ -85,7 +120,15 @@ export function useAdminSync() {
     onMessage,
   });
 
-  return { state, voteResult, status, sendAction, clearVoteResult: () => setVoteResult(null) };
+  return {
+    state,
+    voteResult,
+    revealedVoteCount,
+    allVotesRevealed,
+    status,
+    sendAction,
+    clearVoteResult: () => setVoteResult(null),
+  };
 }
 
 // --- Player Sync ---
